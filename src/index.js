@@ -4,7 +4,7 @@ import Preload from './scenes/Preload';
 import MainGame from './scenes/MainGame';
 
 const config = {
-    type: Phaser.AUTO,
+    type: Phaser.CANVAS,
     canvas: document.getElementById('game'),
     width: 800,
     height: 600,
