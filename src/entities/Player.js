@@ -90,7 +90,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        this.setVelocity(inputVector.x * this.speed, inputVector.y * this.speed);
+        // Get speed modifier from collision manager if available
+        const speedModifier = this.scene.collisionManager ? this.scene.collisionManager.getPlayerSpeedModifier() : 1.0;
+        const modifiedSpeed = this.speed * speedModifier;
+
+        this.setVelocity(inputVector.x * modifiedSpeed, inputVector.y * modifiedSpeed);
 
         if (inputVector.x !== 0 || inputVector.y !== 0) {
             if (Math.abs(inputVector.x) >= Math.abs(inputVector.y)) {
