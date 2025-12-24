@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player';
 import InputManager from '../systems/InputManager';
 import CameraManager from '../systems/CameraManager';
+import CollisionManager from '../systems/CollisionManager';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
 
 export default class MainGame extends Phaser.Scene {
@@ -12,6 +13,7 @@ export default class MainGame extends Phaser.Scene {
         this.player = null;
 
         this.cameraManager = null;
+        this.collisionManager = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
 
@@ -26,6 +28,9 @@ export default class MainGame extends Phaser.Scene {
 
     create() {
         this.inputManager = new InputManager(this);
+
+        // Initialize collision manager
+        this.collisionManager = new CollisionManager(this);
 
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
@@ -50,6 +55,10 @@ export default class MainGame extends Phaser.Scene {
         });
 
         this.cameras.main.setZoom(1);
+
+        // Load initial tilemap
+        this.collisionManager.loadTilemap(startingRegion.name);
+        this.collisionManager.setupCollisions(this.player);
     }
 
     onRegionChanged(regionName, bounds) {
@@ -63,6 +72,12 @@ export default class MainGame extends Phaser.Scene {
             .grid(bounds.minX, bounds.minY, bounds.width, bounds.height, 32, 32, 0x050505, 1, 0x111111, 1)
             .setOrigin(0)
             .setDepth(-10);
+
+        // Load new tilemap for the region
+        if (this.collisionManager) {
+            this.collisionManager.loadTilemap(regionName);
+            this.collisionManager.setupCollisions(this.player);
+        }
 
         this._rebuildPortals();
 
