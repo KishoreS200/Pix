@@ -66,15 +66,29 @@ export default class CollisionManager {
         return keyMap[regionName];
     }
 
-    setupCollisions(player) {
+    setupCollisions(player, enemies) {
         // Solid collision
         if (this.solidLayer) {
             this.scene.physics.add.collider(player, this.solidLayer);
+            if (enemies) {
+                this.scene.physics.add.collider(enemies, this.solidLayer);
+            }
         }
 
         // Setup overlap checks for hazard and slow tiles
         this.setupHazardOverlap(player);
         this.setupSlowOverlap(player);
+    }
+
+    setupEnemyCollisions(player, enemies) {
+        this.scene.physics.add.overlap(player, enemies, (player, enemy) => {
+            this.handlePlayerEnemyOverlap(player, enemy);
+        }, null, this);
+    }
+
+    handlePlayerEnemyOverlap(player, enemy) {
+        if (enemy.state === 'dead') return;
+        player.takeDamage(enemy.damage, enemy);
     }
 
     setupHazardOverlap(player) {

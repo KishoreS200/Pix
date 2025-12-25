@@ -13,8 +13,46 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.health = 100;
         this.speed = 200;
         this.facingDirection = 'down';
+        this.isInvulnerable = false;
+        this.invulnerabilityDuration = 500;
 
         this.setupAnimations();
+    }
+
+    takeDamage(amount, source) {
+        if (this.isInvulnerable || this.health <= 0) return;
+
+        this.health = Math.max(0, this.health - amount);
+        console.log(`Player hit! Health: ${this.health}`);
+
+        // Visual feedback
+        this.setTint(0xff0000);
+        this.scene.cameras.main.shake(100, 0.01);
+
+        // Knockback
+        if (source) {
+            const angle = Phaser.Math.Angle.Between(source.x, source.y, this.x, this.y);
+            const knockbackForce = 150;
+            this.setVelocity(Math.cos(angle) * knockbackForce, Math.sin(angle) * knockbackForce);
+        }
+
+        this.play('hit', true);
+
+        this.isInvulnerable = true;
+        this.scene.time.delayedCall(this.invulnerabilityDuration, () => {
+            this.isInvulnerable = false;
+            this.clearTint();
+        });
+
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        this.play('death', true);
+        this.setVelocity(0, 0);
+        this.scene.events.emit('player-death');
     }
 
     setupAnimations() {
@@ -85,8 +123,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     update(inputVector) {
         // Don't interrupt certain animations if they are still playing
         const currentAnim = this.anims.currentAnim;
-        if (currentAnim && (currentAnim.key === 'attack' || currentAnim.key === 'hit' || currentAnim.key === 'death') && this.anims.isPlaying) {
+        if (currentAnim && (currentAnim.key === 'attack' || currentAnim.key === 'death') && this.anims.isPlaying) {
             this.setVelocity(0, 0);
+            return;
+        }
+
+        // Allow 'hit' animation to play while knockback is active
+        if (currentAnim && currentAnim.key === 'hit' && this.anims.isPlaying) {
             return;
         }
 
