@@ -3,6 +3,7 @@ import Player from '../entities/Player';
 import InputManager from '../systems/InputManager';
 import CameraManager from '../systems/CameraManager';
 import CollisionManager from '../systems/CollisionManager';
+import EnemySpawner from '../systems/EnemySpawner';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
 
 export default class MainGame extends Phaser.Scene {
@@ -14,6 +15,7 @@ export default class MainGame extends Phaser.Scene {
 
         this.cameraManager = null;
         this.collisionManager = null;
+        this.enemySpawner = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
 
@@ -34,6 +36,10 @@ export default class MainGame extends Phaser.Scene {
 
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
+
+        // Initialize enemy spawner
+        this.enemySpawner = new EnemySpawner(this);
+        this.enemySpawner.spawnWave(Regions.SILENT_VILLAGE);
 
         this.regionText = this.add.text(10, 10, '', {
             fontSize: '16px',
@@ -58,7 +64,8 @@ export default class MainGame extends Phaser.Scene {
 
         // Load initial tilemap
         this.collisionManager.loadTilemap(startingRegion.name);
-        this.collisionManager.setupCollisions(this.player);
+        this.collisionManager.setupCollisions(this.player, this.enemySpawner.enemies);
+        this.collisionManager.setupEnemyCollisions(this.player, this.enemySpawner.enemies);
     }
 
     onRegionChanged(regionName, bounds) {
@@ -76,7 +83,11 @@ export default class MainGame extends Phaser.Scene {
         // Load new tilemap for the region
         if (this.collisionManager) {
             this.collisionManager.loadTilemap(regionName);
-            this.collisionManager.setupCollisions(this.player);
+            this.collisionManager.setupCollisions(this.player, this.enemySpawner ? this.enemySpawner.enemies : null);
+            
+            if (this.enemySpawner) {
+                this.enemySpawner.spawnWave(regionName);
+            }
         }
 
         this._rebuildPortals();
@@ -141,9 +152,17 @@ export default class MainGame extends Phaser.Scene {
             const movementVector = this.inputManager.getMovementVector();
             this.player.update(movementVector);
 
+            if (this.enemySpawner) {
+                this.enemySpawner.update(this.player);
+            }
+
             if (this.inputManager.isAttackJustPressed()) {
                 console.log('Attack pressed!');
                 this.player.play('attack', true);
+            }
+
+            if (this.collisionManager) {
+                this.collisionManager.update(this.player);
             }
         } else {
             this.player.setVelocity(0, 0);
