@@ -239,6 +239,7 @@ export default class Preload extends Phaser.Scene {
     }
 
     create() {
+        console.log('Preload scene completed, starting MainGame');
         this.scene.start('MainGame');
     }
 }
