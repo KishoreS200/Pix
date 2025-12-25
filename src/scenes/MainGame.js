@@ -29,6 +29,7 @@ export default class MainGame extends Phaser.Scene {
     }
 
     create() {
+        console.log('MainGame scene started');
         this.inputManager = new InputManager(this);
 
         // Initialize collision manager
@@ -66,6 +67,9 @@ export default class MainGame extends Phaser.Scene {
         this.collisionManager.loadTilemap(startingRegion.name);
         this.collisionManager.setupCollisions(this.player, this.enemySpawner.enemies);
         this.collisionManager.setupEnemyCollisions(this.player, this.enemySpawner.enemies);
+        
+        console.log('Player created:', this.player);
+        console.log('Enemies spawned:', this.enemySpawner.enemies.length);
     }
 
     onRegionChanged(regionName, bounds) {
