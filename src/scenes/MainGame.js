@@ -7,6 +7,8 @@ import CombatManager from '../systems/CombatManager';
 import EnemySpawner from '../systems/EnemySpawner';
 import LootManager from '../systems/LootManager';
 import ProgressionManager from '../systems/ProgressionManager';
+import ParticleManager from '../systems/ParticleManager';
+import EffectsManager from '../systems/EffectsManager';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
@@ -24,6 +26,8 @@ export default class MainGame extends Phaser.Scene {
         this.enemySpawner = null;
         this.lootManager = null;
         this.progressionManager = null;
+        this.particleManager = null;
+        this.effectsManager = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
         
@@ -47,6 +51,9 @@ export default class MainGame extends Phaser.Scene {
         this.xpText = null;
         this.xpBar = null;
         this.xpBarBg = null;
+
+        this._xpBarState = { progress: 0 };
+        this._xpBarTween = null;
     }
 
     create() {
@@ -64,6 +71,12 @@ export default class MainGame extends Phaser.Scene {
 
         // Initialize progression manager
         this.progressionManager = new ProgressionManager(this);
+
+        // Initialize particle manager
+        this.particleManager = new ParticleManager(this);
+
+        // Initialize effects manager
+        this.effectsManager = new EffectsManager(this);
 
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
@@ -214,6 +227,18 @@ export default class MainGame extends Phaser.Scene {
         // Player damage (for updating health display)
         this.events.on('player-damage', (amount) => {
             this.updateHealthText();
+            
+            // Brief red flash on health text
+            if (this.healthText) {
+                this.tweens.add({
+                    targets: this.healthText,
+                    scaleX: 1.3,
+                    scaleY: 1.3,
+                    duration: 80,
+                    yoyo: true,
+                    ease: 'Back.easeOut'
+                });
+            }
         });
         
         // Enemy defeated - grant XP
@@ -236,9 +261,6 @@ export default class MainGame extends Phaser.Scene {
         this.events.on('level-up', (data) => {
             // Show level up floating text
             FloatingText.showLevelUp(this, this.player.x, this.player.y - 80, data.level);
-            
-            // Screen flash effect
-            this.cameras.main.flash(500, 255, 255, 200);
             
             // Apply new stats to player
             this.applyProgressionToPlayer();
@@ -264,6 +286,16 @@ export default class MainGame extends Phaser.Scene {
     updateCoinText() {
         if (this.coinText) {
             this.coinText.setText(`Coins: ${this.playerCoins}`);
+            
+            // Pulse animation on coin gain
+            this.tweens.add({
+                targets: this.coinText,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                duration: 100,
+                yoyo: true,
+                ease: 'Back.easeOut'
+            });
         }
     }
 
@@ -309,7 +341,7 @@ export default class MainGame extends Phaser.Scene {
         
         const currentXP = this.progressionManager.getCurrentXP();
         const xpForNextLevel = this.progressionManager.getXPForNextLevel();
-        const progress = Math.min(1, currentXP / xpForNextLevel);
+        const targetProgress = Math.min(1, currentXP / xpForNextLevel);
         
         // Bar dimensions
         const barWidth = 150;
@@ -318,7 +350,6 @@ export default class MainGame extends Phaser.Scene {
         const y = 168; // Positioned below XP text
         
         // Clear previous graphics
-        this.xpBar.clear();
         this.xpBarBg.clear();
         
         // Draw background
@@ -327,20 +358,43 @@ export default class MainGame extends Phaser.Scene {
         this.xpBarBg.lineStyle(2, 0x00ffff, 0.5);
         this.xpBarBg.strokeRect(x, y, barWidth, barHeight);
         
-        // Draw fill (gradient effect with multiple rectangles)
-        if (progress > 0) {
-            const fillWidth = barWidth * progress;
-            
-            // Cyan to green gradient
-            this.xpBar.fillStyle(0x00ffff, 0.8);
-            this.xpBar.fillRect(x, y, fillWidth * 0.5, barHeight);
-            
-            this.xpBar.fillStyle(0x00ffaa, 0.8);
-            this.xpBar.fillRect(x + fillWidth * 0.5, y, fillWidth * 0.3, barHeight);
-            
-            this.xpBar.fillStyle(0x00ff00, 0.8);
-            this.xpBar.fillRect(x + fillWidth * 0.8, y, fillWidth * 0.2, barHeight);
+        // Animate fill progress smoothly
+        if (this._xpBarTween) {
+            this._xpBarTween.stop();
         }
+        
+        this._xpBarTween = this.tweens.add({
+            targets: this._xpBarState,
+            progress: targetProgress,
+            duration: 300,
+            ease: 'Power2',
+            onUpdate: () => {
+                const progress = this._xpBarState.progress;
+                
+                // Clear and redraw
+                this.xpBar.clear();
+                
+                if (progress > 0) {
+                    const fillWidth = barWidth * progress;
+                    
+                    // Cyan to green gradient
+                    this.xpBar.fillStyle(0x00ffff, 0.8);
+                    this.xpBar.fillRect(x, y, fillWidth * 0.5, barHeight);
+                    
+                    this.xpBar.fillStyle(0x00ffaa, 0.8);
+                    this.xpBar.fillRect(x + fillWidth * 0.5, y, fillWidth * 0.3, barHeight);
+                    
+                    this.xpBar.fillStyle(0x00ff00, 0.8);
+                    this.xpBar.fillRect(x + fillWidth * 0.8, y, fillWidth * 0.2, barHeight);
+                }
+                
+                // Glow effect on near completion
+                if (progress > 0.9) {
+                    this.xpBar.lineStyle(2, 0xFFD700, (progress - 0.9) * 5);
+                    this.xpBar.strokeRect(x - 1, y - 1, barWidth + 2, barHeight + 2);
+                }
+            }
+        });
     }
     
     applyProgressionToPlayer() {
@@ -467,6 +521,14 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.lootManager) {
             this.lootManager.destroy();
+        }
+        
+        if (this.particleManager) {
+            this.particleManager.destroy();
+        }
+        
+        if (this.effectsManager) {
+            this.effectsManager.destroy();
         }
         
         // Clean up XP bar graphics

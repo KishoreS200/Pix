@@ -63,6 +63,20 @@ export default class ProgressionManager {
     }
     
     handleLevelUp() {
+        const player = this.scene.player;
+
+        // Level up burst + major screen effect
+        if (player && this.scene.particleManager) {
+            this.scene.particleManager.createLevelUpBurst(player.x, player.y);
+        }
+
+        if (this.scene.effectsManager) {
+            this.scene.effectsManager.majorEvent('levelup');
+        }
+
+        // Sound hook
+        this.scene.events.emit('effect-level-up', { level: this.currentLevel });
+
         // Emit event for level up
         this.scene.events.emit('level-up', {
             level: this.currentLevel,
