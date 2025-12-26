@@ -10,15 +10,21 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.setCollideWorldBounds(true);
 
-        // Properties
-        this.health = 100;
-        this.speed = 200;
+        // Base properties (will be updated by progression system)
+        this.baseHealth = 100;
+        this.baseSpeed = 200;
+        this.baseAttackDamage = 15;
+        this.baseKnockbackForce = 250;
+
+        // Current properties
+        this.health = this.baseHealth;
+        this.speed = this.baseSpeed;
         this.facingDirection = 'down';
         this.isInvulnerable = false;
         this.invulnerabilityDuration = 500;
         
         // Combat properties
-        this.attackDamage = 15;
+        this.attackDamage = this.baseAttackDamage;
         this.attackCooldown = 600;
         this.lastAttackTime = 0;
         this.isAttacking = false;
@@ -27,9 +33,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.powerUpActive = false;
         this.powerUpEndTime = 0;
         this.powerUpTimer = null;
-        this.baseAttackDamage = 15;
-        this.baseKnockbackForce = 250; // Base knockback for player attacks
-        this.currentKnockbackForce = 250;
+        this.currentKnockbackForce = this.baseKnockbackForce;
+        
+        // Level tracking
+        this.currentLevel = 1;
+        this.maxHealth = this.baseHealth;
 
         this.setupAnimations();
     }
@@ -145,6 +153,41 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
                 this.scene.events.emit('powerup-update', remainingTime);
             }
         }
+    }
+    
+    applyStatBases(stats) {
+        // Update base stats from progression
+        this.baseHealth = stats.health;
+        this.baseSpeed = stats.speed;
+        this.baseAttackDamage = stats.damage;
+        this.baseKnockbackForce = stats.knockbackForce;
+        
+        // Update current level tracking
+        if (this.scene.progressionManager) {
+            this.currentLevel = this.scene.progressionManager.getCurrentLevel();
+        }
+        
+        // Apply stats immediately
+        this.speed = this.baseSpeed;
+        this.maxHealth = this.baseHealth;
+        
+        // Update damage and knockback (respecting power-up state)
+        if (!this.powerUpActive) {
+            this.attackDamage = this.baseAttackDamage;
+            this.currentKnockbackForce = this.baseKnockbackForce;
+        } else {
+            // Re-apply power-up with new base values
+            const remainingTime = this.powerUpEndTime - this.scene.time.now;
+            this.activatePowerUp(
+                LootConfig.powerUpSettings.damageBoostPercentage,
+                remainingTime
+            );
+        }
+    }
+    
+    healToFull() {
+        this.health = this.maxHealth;
+        this.scene.events.emit('player-healed', this.health);
     }
 
     attack() {

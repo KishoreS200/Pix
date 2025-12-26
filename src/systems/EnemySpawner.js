@@ -60,9 +60,46 @@ export default class EnemySpawner {
         }
 
         if (enemy) {
+            // Scale enemy based on player level (optional difficulty scaling)
+            this.scaleEnemyByPlayerLevel(enemy);
+            
             this.enemies.add(enemy);
         }
         return enemy;
+    }
+    
+    scaleEnemyByPlayerLevel(enemy) {
+        if (!this.scene.progressionManager) return;
+        
+        const playerLevel = this.scene.progressionManager.getCurrentLevel();
+        
+        // Only scale if player is above level 1
+        if (playerLevel <= 1) return;
+        
+        const levelBonus = playerLevel - 1;
+        
+        // Store base values before scaling
+        if (!enemy.baseValues) {
+            enemy.baseValues = {
+                health: enemy.health,
+                damage: enemy.damage,
+                speed: enemy.speed,
+                xpReward: enemy.xpReward
+            };
+        }
+        
+        // Apply scaling
+        // Enemy health: +5 per player level
+        enemy.health = enemy.baseValues.health + (levelBonus * 5);
+        
+        // Enemy damage: +1 per player level
+        enemy.damage = enemy.baseValues.damage + levelBonus;
+        
+        // Enemy speed: +10 per player level (but cap at reasonable max)
+        enemy.speed = Math.min(enemy.baseValues.speed + (levelBonus * 10), 300);
+        
+        // XP reward scales slightly with player level (base + level bonus)
+        enemy.xpReward = Math.floor(enemy.baseValues.xpReward + (levelBonus * 0.5));
     }
 
     spawnWave(region) {

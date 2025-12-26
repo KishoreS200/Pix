@@ -10,6 +10,7 @@ export default class CorruptedHuman extends Enemy {
         this.detectionRadius = 200;
         this.damage = 10;
         this.type = type;
+        this.xpReward = 15; // Stronger than basic enemies
 
         this.startPos = { x, y };
         this.patrolRadius = 100;

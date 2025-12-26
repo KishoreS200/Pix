@@ -65,4 +65,50 @@ export default class FloatingText {
             fontSize: '18px'
         });
     }
+
+    static showXP(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `+${amount} XP`, {
+            fill: '#FFD700', // Gold for XP
+            fontSize: '18px'
+        });
+    }
+
+    static showLevelUp(scene, x, y, level) {
+        const text = scene.add.text(x, y, 'LEVEL UP!', {
+            fontSize: '32px',
+            fill: '#FFD700', // Gold
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+
+        text.setScrollFactor(0);
+        text.setDepth(200);
+        text.setOrigin(0.5, 0.5);
+
+        // Scale up animation
+        scene.tweens.add({
+            targets: text,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Scale down and fade out
+                scene.tweens.add({
+                    targets: text,
+                    scaleX: 1,
+                    scaleY: 1,
+                    alpha: 0,
+                    duration: 800,
+                    delay: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        text.destroy();
+                    }
+                });
+            }
+        });
+    }
 }
