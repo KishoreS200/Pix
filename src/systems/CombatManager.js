@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import FloatingText from '../utils/FloatingText';
 
 export default class CombatManager {
     constructor(scene) {
@@ -65,9 +66,18 @@ export default class CombatManager {
             target.takeDamage(amount, attacker);
         }
 
-        const knockbackForce = target.constructor.name === 'Player' ? 250 : 200;
+        // Use attacker's current knockback force if available, otherwise use defaults
+        const knockbackForce = attacker && attacker.currentKnockbackForce 
+            ? attacker.currentKnockbackForce 
+            : (target.constructor.name === 'Player' ? 250 : 200);
+        
         const knockback = this.calculateKnockback(attacker, target, knockbackForce);
         target.setVelocity(knockback.x, knockback.y);
+
+        // Show floating damage text
+        if (target.constructor.name === 'Enemy') {
+            FloatingText.showDamage(this.scene, target.x, target.y - 20, amount);
+        }
     }
 
     calculateKnockback(attacker, target, force) {

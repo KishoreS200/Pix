@@ -86,6 +86,25 @@ export default class CollisionManager {
         this.scene.physics.add.collider(player, enemies);
     }
 
+    setupLootCollisions(player, lootManager) {
+        if (!lootManager || !lootManager.lootItems) return;
+
+        // Set up overlap detection between player and loot items
+        this.scene.physics.add.overlap(player, null, (player, lootItem) => {
+            this.handleLootOverlap(player, lootItem);
+        }, null, this);
+
+        // We'll need to update the overlap target when new loot items are spawned
+        // This will be handled by the loot manager
+    }
+
+    handleLootOverlap(player, lootItem) {
+        // Check if the object is actually a loot item
+        if (lootItem && lootItem.constructor.name === 'LootItem' && lootItem.active) {
+            player.collectLoot(lootItem);
+        }
+    }
+
     setupHazardOverlap(player) {
         this.scene.physics.add.overlap(player, this.hazardLayer, (player) => {
             this.handleHazardOverlap(player);

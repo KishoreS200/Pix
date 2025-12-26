@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { LootConfig } from '../utils/LootConfig';
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
@@ -21,6 +22,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.attackCooldown = 600;
         this.lastAttackTime = 0;
         this.isAttacking = false;
+        
+        // Power-up state
+        this.powerUpActive = false;
+        this.powerUpEndTime = 0;
+        this.powerUpTimer = null;
+        this.baseAttackDamage = 15;
+        this.baseKnockbackForce = 250; // Base knockback for player attacks
+        this.currentKnockbackForce = 250;
 
         this.setupAnimations();
     }
@@ -30,6 +39,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.health = Math.max(0, this.health - amount);
         console.log(`Player hit! Health: ${this.health}`);
+        
+        // Emit damage event for HUD updates
+        this.scene.events.emit('player-damage', amount);
 
         // Visual feedback
         this.setTint(0xff0000);
@@ -59,6 +71,80 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.play('death', true);
         this.setVelocity(0, 0);
         this.scene.events.emit('player-death');
+    }
+
+    collectLoot(lootItem) {
+        if (!lootItem || !lootItem.active) return;
+
+        // Play collect animation
+        lootItem.playCollectAnimation();
+
+        // Handle different loot types
+        switch (lootItem.type) {
+            case 'coin':
+                this.scene.events.emit('coin-collected', lootItem.value);
+                break;
+            case 'potion':
+                this.scene.events.emit('potion-collected', lootItem.value);
+                break;
+            case 'powerup':
+                this.scene.events.emit('powerup-collected', lootItem.value);
+                break;
+        }
+
+        // Remove from loot manager
+        if (this.scene.lootManager) {
+            this.scene.lootManager.despawnLootItem(lootItem);
+        }
+    }
+
+    activatePowerUp(damageBoostPercentage, durationMs) {
+        // If power-up is already active, reset the timer
+        if (this.powerUpTimer) {
+            this.powerUpTimer.remove();
+        }
+
+        this.powerUpActive = true;
+        this.powerUpEndTime = this.scene.time.now + durationMs;
+        
+        // Apply damage boost
+        const boostMultiplier = 1 + (damageBoostPercentage / 100);
+        this.attackDamage = Math.floor(this.baseAttackDamage * boostMultiplier);
+
+        // Apply knockback boost
+        const knockbackBoostMultiplier = 1 + (LootConfig.powerUpSettings.knockbackBoostPercentage / 100);
+        this.currentKnockbackForce = Math.floor(this.baseKnockbackForce * knockbackBoostMultiplier);
+
+        // Visual indicator - golden tint
+        this.setTint(LootConfig.rarityColors.rare);
+
+        // Set up timer for power-up expiration
+        this.powerUpTimer = this.scene.time.delayedCall(durationMs, () => {
+            this.deactivatePowerUp();
+        });
+
+        this.scene.events.emit('powerup-activated', damageBoostPercentage, durationMs);
+    }
+
+    deactivatePowerUp() {
+        this.powerUpActive = false;
+        this.powerUpEndTime = 0;
+        this.attackDamage = this.baseAttackDamage;
+        this.currentKnockbackForce = this.baseKnockbackForce;
+        this.clearTint();
+        
+        this.scene.events.emit('powerup-ended');
+    }
+
+    updatePowerUp(time) {
+        if (this.powerUpActive) {
+            const remainingTime = this.powerUpEndTime - time;
+            if (remainingTime <= 0) {
+                this.deactivatePowerUp();
+            } else {
+                this.scene.events.emit('powerup-update', remainingTime);
+            }
+        }
     }
 
     attack() {

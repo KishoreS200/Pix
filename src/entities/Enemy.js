@@ -189,8 +189,17 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.play(`${this.texture.key}-death`, true);
         this.on('animationcomplete', (anim) => {
             if (anim.key === `${this.texture.key}-death`) {
+                // Trigger loot drop before destroying
+                this.dropLoot();
                 this.destroy();
             }
         });
+    }
+
+    dropLoot() {
+        // Check if scene has a loot manager
+        if (this.scene.lootManager) {
+            this.scene.lootManager.spawnLootAtPosition(this.x, this.y);
+        }
     }
 }
