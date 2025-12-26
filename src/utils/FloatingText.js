@@ -1,0 +1,68 @@
+import Phaser from 'phaser';
+
+export default class FloatingText {
+    constructor(scene, x, y, text, style = {}) {
+        // Default style
+        const defaultStyle = {
+            fontSize: '16px',
+            fill: '#00ffff', // Cyan
+            fontFamily: 'Arial',
+            align: 'center'
+        };
+
+        const mergedStyle = { ...defaultStyle, ...style };
+
+        this.text = scene.add.text(x, y, text, mergedStyle);
+        this.text.setScrollFactor(0);
+        this.text.setDepth(100); // Ensure it's above everything
+        this.text.setOrigin(0.5, 0.5);
+
+        // Animation: float up and fade out
+        scene.tweens.add({
+            targets: this.text,
+            y: y - 50,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                this.text.destroy();
+            }
+        });
+    }
+
+    static showDamage(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `-${amount}`, {
+            fill: '#ffffff', // White for damage
+            fontSize: '18px'
+        });
+    }
+
+    static showHealing(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `+${amount} HP`, {
+            fill: '#00ff00', // Green for healing
+            fontSize: '18px'
+        });
+    }
+
+    static showCoins(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `+${amount} coins`, {
+            fill: '#FFD700', // Gold for coins
+            fontSize: '18px'
+        });
+    }
+
+    static showPowerUp(scene, x, y) {
+        new FloatingText(scene, x, y, 'POWER UP!', {
+            fill: '#00ffff', // Cyan for power-ups
+            fontSize: '20px',
+            fontWeight: 'bold'
+        });
+    }
+
+    static showItemPickup(scene, x, y, itemName) {
+        new FloatingText(scene, x, y, `+${itemName}`, {
+            fill: '#00ffff', // Cyan for items
+            fontSize: '18px'
+        });
+    }
+}
