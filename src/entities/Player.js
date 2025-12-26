@@ -15,6 +15,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.facingDirection = 'down';
         this.isInvulnerable = false;
         this.invulnerabilityDuration = 500;
+        
+        // Combat properties
+        this.attackDamage = 15;
+        this.attackCooldown = 600;
+        this.lastAttackTime = 0;
+        this.isAttacking = false;
 
         this.setupAnimations();
     }
@@ -32,7 +38,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // Knockback
         if (source) {
             const angle = Phaser.Math.Angle.Between(source.x, source.y, this.x, this.y);
-            const knockbackForce = 150;
+            const knockbackForce = 250;
             this.setVelocity(Math.cos(angle) * knockbackForce, Math.sin(angle) * knockbackForce);
         }
 
@@ -53,6 +59,47 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.play('death', true);
         this.setVelocity(0, 0);
         this.scene.events.emit('player-death');
+    }
+
+    attack() {
+        const currentTime = this.scene.time.now;
+        
+        if (currentTime - this.lastAttackTime < this.attackCooldown) {
+            return false;
+        }
+
+        if (this.isAttacking || this.health <= 0) {
+            return false;
+        }
+
+        this.isAttacking = true;
+        this.lastAttackTime = currentTime;
+        this.setVelocity(0, 0);
+        
+        this.play('attack', true);
+
+        if (this.scene.combatManager) {
+            const range = 80;
+            const width = 60;
+            const hitbox = this.scene.combatManager.createAttackHitbox(this, range, width, this.facingDirection);
+            
+            if (this.scene.enemySpawner && this.scene.enemySpawner.enemies) {
+                this.scene.combatManager.checkHitboxCollisions(hitbox, this.scene.enemySpawner.enemies);
+            }
+        }
+
+        this.once('animationcomplete', (anim) => {
+            if (anim.key === 'attack') {
+                this.isAttacking = false;
+            }
+        });
+
+        return true;
+    }
+
+    dealDamage(target, amount) {
+        if (!target || !target.takeDamage) return;
+        target.takeDamage(amount, this);
     }
 
     setupAnimations() {
@@ -130,6 +177,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         // Allow 'hit' animation to play while knockback is active
         if (currentAnim && currentAnim.key === 'hit' && this.anims.isPlaying) {
+            return;
+        }
+
+        // Don't allow movement while attacking
+        if (this.isAttacking) {
+            this.setVelocity(0, 0);
             return;
         }
 

@@ -3,6 +3,7 @@ import Player from '../entities/Player';
 import InputManager from '../systems/InputManager';
 import CameraManager from '../systems/CameraManager';
 import CollisionManager from '../systems/CollisionManager';
+import CombatManager from '../systems/CombatManager';
 import EnemySpawner from '../systems/EnemySpawner';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
 
@@ -15,6 +16,7 @@ export default class MainGame extends Phaser.Scene {
 
         this.cameraManager = null;
         this.collisionManager = null;
+        this.combatManager = null;
         this.enemySpawner = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
@@ -34,6 +36,9 @@ export default class MainGame extends Phaser.Scene {
 
         // Initialize collision manager
         this.collisionManager = new CollisionManager(this);
+        
+        // Initialize combat manager
+        this.combatManager = new CombatManager(this);
 
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
@@ -161,8 +166,7 @@ export default class MainGame extends Phaser.Scene {
             }
 
             if (this.inputManager.isAttackJustPressed()) {
-                console.log('Attack pressed!');
-                this.player.play('attack', true);
+                this.player.attack();
             }
 
             if (this.collisionManager) {
@@ -173,5 +177,15 @@ export default class MainGame extends Phaser.Scene {
         }
 
         this.cameraManager.update(time, delta);
+    }
+
+    shutdown() {
+        if (this.combatManager) {
+            this.combatManager.cleanup();
+        }
+        
+        if (this.collisionManager) {
+            this.collisionManager.destroy();
+        }
     }
 }
