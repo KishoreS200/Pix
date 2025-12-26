@@ -4,12 +4,12 @@ import { LootConfig } from '../utils/LootConfig';
 export default class LootItem extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, type, value) {
         // Create a temporary texture for the loot item
-        const size = this.getSizeForType(type);
+        const size = LootItem.getSizeForType(type);
         const textureKey = `loot-${type}-${size}`;
         
         // Check if texture already exists, if not create it
         if (!scene.textures.exists(textureKey)) {
-            this.createLootTexture(scene, textureKey, type, size);
+            LootItem.createLootTexture(scene, textureKey, type, size);
         }
 
         super(scene, x, y, textureKey);
@@ -34,7 +34,7 @@ export default class LootItem extends Phaser.Physics.Arcade.Sprite {
         this.startIdleAnimation();
     }
 
-    getSizeForType(type) {
+    static getSizeForType(type) {
         switch (type) {
             case 'coin': return 16;
             case 'potion': return 24;
@@ -60,7 +60,7 @@ export default class LootItem extends Phaser.Physics.Arcade.Sprite {
         return 'common';
     }
 
-    createLootTexture(scene, textureKey, type, size) {
+    static createLootTexture(scene, textureKey, type, size) {
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
