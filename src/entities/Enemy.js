@@ -12,9 +12,17 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.speed = 100;
         this.detectionRadius = 150;
         this.damage = 5;
-        this.state = 'idle'; // 'idle', 'patrol', 'alert', 'chase', 'dead'
+        this.state = 'idle'; // 'idle', 'patrol', 'alert', 'chase', 'attack', 'dead'
         this.lastDamageTime = 0;
         this.damageCooldown = 500;
+        
+        // Combat properties
+        this.attackRange = 100;
+        this.attackCooldown = 1000;
+        this.lastAttackTime = 0;
+        this.isAttacking = false;
+        this.isInvulnerable = false;
+        this.invulnerabilityDuration = 500;
 
         this.setupAnimations();
     }
@@ -66,31 +74,108 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
 
-        if (distance <= this.detectionRadius) {
-            this.state = 'chase';
-        } else if (this.state === 'chase') {
-            this.state = 'patrol';
+        // Don't change state if currently attacking
+        if (this.state !== 'attack') {
+            if (distance <= this.detectionRadius) {
+                this.state = 'chase';
+            } else if (this.state === 'chase') {
+                this.state = 'patrol';
+            }
         }
 
         this.handleAI(player, distance);
     }
 
     handleAI(player, distance) {
+        // Don't move if attacking, being hit, or dead
+        if (this.isAttacking || this.state === 'dead') {
+            this.setVelocity(0, 0);
+            return;
+        }
+
+        // Allow knockback during hit animation
+        const currentAnim = this.anims.currentAnim;
+        if (currentAnim && currentAnim.key === `${this.texture.key}-hit` && this.anims.isPlaying) {
+            return;
+        }
+
         // Base AI behavior (can be overridden by subclasses)
         if (this.state === 'chase') {
-            this.scene.physics.moveToObject(this, player, this.speed);
-            this.play(`${this.texture.key}-walk`, true);
+            // Check if in attack range
+            if (distance <= this.attackRange) {
+                this.attack(player);
+            } else {
+                this.scene.physics.moveToObject(this, player, this.speed);
+                this.play(`${this.texture.key}-walk`, true);
+            }
         } else {
             this.setVelocity(0, 0);
             this.play(`${this.texture.key}-idle`, true);
         }
     }
 
-    takeDamage(amount) {
-        if (this.state === 'dead') return;
+    attack(player) {
+        const currentTime = this.scene.time.now;
+        
+        if (currentTime - this.lastAttackTime < this.attackCooldown) {
+            return false;
+        }
+
+        if (this.isAttacking || this.state === 'dead') {
+            return false;
+        }
+
+        this.isAttacking = true;
+        this.lastAttackTime = currentTime;
+        this.setVelocity(0, 0);
+        this.state = 'attack';
+        
+        this.play(`${this.texture.key}-attack`, true);
+
+        // Deal damage mid-animation
+        this.scene.time.delayedCall(200, () => {
+            if (this.state !== 'dead' && player && player.active) {
+                const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+                if (distance <= this.attackRange) {
+                    player.takeDamage(this.damage, this);
+                }
+            }
+        });
+
+        this.once('animationcomplete', (anim) => {
+            if (anim.key === `${this.texture.key}-attack`) {
+                this.isAttacking = false;
+                this.state = 'chase';
+            }
+        });
+
+        return true;
+    }
+
+    takeDamage(amount, source) {
+        if (this.state === 'dead' || this.isInvulnerable) return;
 
         this.health -= amount;
+        console.log(`Enemy hit! Health: ${this.health}`);
+        
+        // Visual feedback
+        this.setTint(0xff0000);
+        this.scene.cameras.main.shake(50, 0.005);
+        
+        // Knockback
+        if (source) {
+            const angle = Phaser.Math.Angle.Between(source.x, source.y, this.x, this.y);
+            const knockbackForce = 200;
+            this.setVelocity(Math.cos(angle) * knockbackForce, Math.sin(angle) * knockbackForce);
+        }
+        
         this.play(`${this.texture.key}-hit`, true);
+
+        this.isInvulnerable = true;
+        this.scene.time.delayedCall(this.invulnerabilityDuration, () => {
+            this.isInvulnerable = false;
+            this.clearTint();
+        });
 
         if (this.health <= 0) {
             this.die();

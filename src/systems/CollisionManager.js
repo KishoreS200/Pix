@@ -81,14 +81,9 @@ export default class CollisionManager {
     }
 
     setupEnemyCollisions(player, enemies) {
-        this.scene.physics.add.overlap(player, enemies, (player, enemy) => {
-            this.handlePlayerEnemyOverlap(player, enemy);
-        }, null, this);
-    }
-
-    handlePlayerEnemyOverlap(player, enemy) {
-        if (enemy.state === 'dead') return;
-        player.takeDamage(enemy.damage, enemy);
+        // Enemy collisions are now handled by enemy attack logic in Enemy.js
+        // Just set up collision to prevent enemies from overlapping with player physically
+        this.scene.physics.add.collider(player, enemies);
     }
 
     setupHazardOverlap(player) {
