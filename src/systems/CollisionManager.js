@@ -26,7 +26,7 @@ export default class CollisionManager {
 
         // Create new tilemap
         this.tilemap = this.scene.add.tilemap(key);
-        const tileset = this.tilemap.addTilesetImage('tileset', 'tiles');
+        const tileset = this.tilemap.addTilesetImage('tileset', 'tileset');
 
         // Create layers
         this.solidLayer = this.tilemap.createLayer('terrain', tileset, 0, 0);
