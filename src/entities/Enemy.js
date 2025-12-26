@@ -140,7 +140,11 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
             if (this.state !== 'dead' && player && player.active) {
                 const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
                 if (distance <= this.attackRange) {
-                    player.takeDamage(this.damage, this);
+                    if (this.scene.combatManager) {
+                        this.scene.combatManager.damageEntity(player, this.damage, this);
+                    } else {
+                        player.takeDamage(this.damage, this);
+                    }
                 }
             }
         });
@@ -193,6 +197,16 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         
         // Grant XP to player
         this.grantXP();
+        
+        // Create death particle effect
+        if (this.scene.particleManager) {
+            this.scene.particleManager.createDeathExplosion(this.x, this.y, this.faction, 20);
+        }
+        
+        // Screen shake on death
+        if (this.scene.effectsManager) {
+            this.scene.effectsManager.screenShake(3, 150);
+        }
         
         this.on('animationcomplete', (anim) => {
             if (anim.key === `${this.texture.key}-death`) {

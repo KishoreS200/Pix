@@ -71,13 +71,43 @@ export default class CombatManager {
             ? attacker.currentKnockbackForce 
             : (target.constructor.name === 'Player' ? 250 : 200);
         
-        const knockback = this.calculateKnockback(attacker, target, knockbackForce);
-        target.setVelocity(knockback.x, knockback.y);
+        if (attacker) {
+            const knockback = this.calculateKnockback(attacker, target, knockbackForce);
+            target.setVelocity(knockback.x, knockback.y);
+        }
 
         // Show floating damage text
         if (target.constructor.name === 'Enemy') {
             FloatingText.showDamage(this.scene, target.x, target.y - 20, amount);
         }
+        
+        // Combat hit effects
+        const isPlayer = target.constructor.name === 'Player';
+
+        if (this.scene.effectsManager && isPlayer) {
+            const maxHealth = target.maxHealth || 100;
+            this.scene.effectsManager.damageFlash(amount, maxHealth);
+        }
+
+        if (this.scene.particleManager) {
+            const color = isPlayer ? 'player_hit' : (target.faction || 'damage');
+            const count = isPlayer ? Phaser.Math.Between(8, 12) : Phaser.Math.Between(6, 10);
+            const duration = isPlayer ? 300 : 250;
+
+            let effectX = target.x;
+            let effectY = target.y;
+
+            if (attacker) {
+                const hitAngle = Phaser.Math.Angle.Between(attacker.x, attacker.y, target.x, target.y);
+                effectX = target.x - Math.cos(hitAngle) * 10;
+                effectY = target.y - Math.sin(hitAngle) * 10;
+            }
+
+            this.scene.particleManager.createHitEffect(effectX, effectY, color, count, { attacker, duration });
+        }
+
+        // Sound hook for future audio
+        this.scene.events.emit('effect-damage', { targetType: target.constructor.name, amount });
     }
 
     calculateKnockback(attacker, target, force) {

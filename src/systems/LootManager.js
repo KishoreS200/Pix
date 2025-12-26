@@ -29,6 +29,25 @@ export default class LootManager {
         const lootItem = new LootItem(this.scene, x, y, selectedType.type, value);
         this.lootItems.push(lootItem);
 
+        // Loot drop effects
+        if (this.scene.particleManager) {
+            this.scene.particleManager.createLootSparkles(x, y, selectedType.type);
+        }
+
+        if (this.scene.effectsManager) {
+            // Subtle screen flash for drops
+            if (selectedType.type === 'coin') {
+                this.scene.effectsManager.screenFlash(0xffffcc, 120, 0.25);
+            } else if (selectedType.type === 'potion') {
+                this.scene.effectsManager.screenFlash(0xff88aa, 120, 0.2);
+            } else if (selectedType.type === 'powerup') {
+                this.scene.effectsManager.screenFlash(0x88ffff, 150, 0.3);
+            }
+        }
+
+        // Sound hook
+        this.scene.events.emit('effect-loot-drop', { x, y, type: selectedType.type, value });
+
         // Auto-despawn after 30 seconds
         this.scene.time.delayedCall(30000, () => {
             this.despawnLootItem(lootItem);

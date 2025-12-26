@@ -53,7 +53,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         // Visual feedback
         this.setTint(0xff0000);
-        this.scene.cameras.main.shake(100, 0.01);
+        
+        // Screen effects - damage flash and shake
+        if (this.scene.effectsManager) {
+            this.scene.effectsManager.damageFlash(amount, this.maxHealth);
+        } else {
+            // Fallback
+            this.scene.cameras.main.shake(100, 0.01);
+        }
+        
+        // Hit particles
+        if (this.scene.particleManager) {
+            this.scene.particleManager.createHitEffect(this.x, this.y, 'player_hit', 12);
+        }
 
         // Knockback
         if (source) {
@@ -211,6 +223,33 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             const range = 80;
             const width = 60;
             const hitbox = this.scene.combatManager.createAttackHitbox(this, range, width, this.facingDirection);
+            
+            // Calculate hitbox position for attack effects
+            let offsetX = 0;
+            let offsetY = 0;
+            
+            switch (this.facingDirection) {
+                case 'up':
+                    offsetY = -range / 2;
+                    break;
+                case 'down':
+                    offsetY = range / 2;
+                    break;
+                case 'left':
+                    offsetX = -range / 2;
+                    break;
+                case 'right':
+                    offsetX = range / 2;
+                    break;
+            }
+            
+            const hitboxX = this.x + offsetX;
+            const hitboxY = this.y + offsetY;
+            
+            // Create attack visual effect
+            if (this.scene.particleManager) {
+                this.scene.particleManager.createAttackEffect(hitboxX, hitboxY, this.facingDirection);
+            }
             
             if (this.scene.enemySpawner && this.scene.enemySpawner.enemies) {
                 this.scene.combatManager.checkHitboxCollisions(hitbox, this.scene.enemySpawner.enemies);
