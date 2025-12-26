@@ -10,6 +10,15 @@ export default class SentinelMachine extends Enemy {
         this.detectionRadius = 250;
         this.damage = 15;
         this.type = type;
+        
+        // Set XP based on subtype
+        if (type === 'turret') {
+            this.xpReward = 15; // Stationary turret
+        } else if (type === 'patrol_drone') {
+            this.xpReward = 18; // Mobile patrol drone
+        } else {
+            this.xpReward = 15; // Default
+        }
 
         if (type === 'turret') {
             this.waypoints = [{ x, y }];

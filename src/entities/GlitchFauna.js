@@ -10,6 +10,13 @@ export default class GlitchFauna extends Enemy {
         this.detectionRadius = 150;
         this.damage = 5;
         this.type = type;
+        
+        // Set XP based on subtype
+        if (type === 'corrupted_wolf') {
+            this.xpReward = 20; // Stronger variant
+        } else {
+            this.xpReward = 10; // Basic glitch bug
+        }
 
         this.lastDirectionChange = 0;
         this.directionChangeInterval = Phaser.Math.Between(500, 1000);

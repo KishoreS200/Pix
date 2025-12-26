@@ -23,6 +23,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.isAttacking = false;
         this.isInvulnerable = false;
         this.invulnerabilityDuration = 500;
+        
+        // XP reward
+        this.xpReward = 10; // Base XP for defeating this enemy
 
         this.setupAnimations();
     }
@@ -187,12 +190,24 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(0, 0);
         this.body.enable = false;
         this.play(`${this.texture.key}-death`, true);
+        
+        // Grant XP to player
+        this.grantXP();
+        
         this.on('animationcomplete', (anim) => {
             if (anim.key === `${this.texture.key}-death`) {
                 // Trigger loot drop before destroying
                 this.dropLoot();
                 this.destroy();
             }
+        });
+    }
+    
+    grantXP() {
+        // Emit XP event for the scene to handle
+        this.scene.events.emit('enemy-defeated', {
+            xpAmount: this.xpReward,
+            enemy: this
         });
     }
 
