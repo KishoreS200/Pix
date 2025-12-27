@@ -9,9 +9,11 @@ import LootManager from '../systems/LootManager';
 import ProgressionManager from '../systems/ProgressionManager';
 import ParticleManager from '../systems/ParticleManager';
 import EffectsManager from '../systems/EffectsManager';
+import AudioManager from '../systems/AudioManager';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
+import { RegionMusicMap } from '../utils/MusicConfig';
 
 export default class MainGame extends Phaser.Scene {
     constructor() {
@@ -28,6 +30,7 @@ export default class MainGame extends Phaser.Scene {
         this.progressionManager = null;
         this.particleManager = null;
         this.effectsManager = null;
+        this.audioManager = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
         
@@ -59,6 +62,9 @@ export default class MainGame extends Phaser.Scene {
     create() {
         console.log('MainGame scene started');
         this.inputManager = new InputManager(this);
+
+        // Initialize audio manager
+        this.audioManager = AudioManager.getInstance(this);
 
         // Initialize collision manager
         this.collisionManager = new CollisionManager(this);
@@ -110,6 +116,20 @@ export default class MainGame extends Phaser.Scene {
         this.setupEventListeners();
 
         this.events.on('regionchanged', this.onRegionChanged, this);
+
+        // Preload/generate audio assets (procedural)
+        if (this.audioManager) {
+            this.audioManager.preloadAudio(this);
+
+            const musicKey = RegionMusicMap[this.currentRegion];
+            if (musicKey) {
+                this.audioManager.playMusic(musicKey, true, 500);
+            }
+
+            this.events.once('shutdown', () => {
+                this.audioManager.stopMusic(500);
+            });
+        }
 
         this.cameraManager = new CameraManager();
         this.cameraManager.init(this, this.player, startingRegion, {
@@ -182,6 +202,10 @@ export default class MainGame extends Phaser.Scene {
             this.playerCoins += amount;
             this.updateCoinText();
             FloatingText.showCoins(this, this.player.x, this.player.y - 30, amount);
+            
+            if (this.audioManager) {
+                this.audioManager.playSound('coin-pickup');
+            }
         });
 
         // Potion collection
@@ -194,6 +218,10 @@ export default class MainGame extends Phaser.Scene {
             this.updateHealthText();
             
             FloatingText.showHealing(this, this.player.x, this.player.y - 30, actualHealing);
+            
+            if (this.audioManager) {
+                this.audioManager.playSound('potion-pickup');
+            }
         });
 
         // Power-up collection
@@ -203,6 +231,10 @@ export default class MainGame extends Phaser.Scene {
                 LootConfig.powerUpSettings.durationMs
             );
             FloatingText.showPowerUp(this, this.player.x, this.player.y - 30);
+            
+            if (this.audioManager) {
+                this.audioManager.playSound('powerup-pickup');
+            }
         });
 
         // Power-up activation
@@ -280,6 +312,14 @@ export default class MainGame extends Phaser.Scene {
         // Player healed event
         this.events.on('player-healed', (newHealth) => {
             this.updateHealthText();
+        });
+
+        // Game over (player death)
+        this.events.on('player-death', () => {
+            if (this.audioManager) {
+                this.audioManager.playSound('game-over');
+                this.audioManager.stopMusic(800);
+            }
         });
     }
 
@@ -407,6 +447,16 @@ export default class MainGame extends Phaser.Scene {
 
     onRegionChanged(regionName, bounds) {
         this.currentRegion = regionName;
+
+        // Region-specific music
+        if (this.audioManager) {
+            const musicKey = RegionMusicMap[regionName];
+            if (musicKey) {
+                this.audioManager.playMusic(musicKey, true, 500);
+            } else {
+                this.audioManager.stopMusic(500);
+            }
+        }
 
         if (this.backgroundGrid) {
             this.backgroundGrid.destroy();

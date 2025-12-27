@@ -12,6 +12,11 @@ export default class CombatManager {
         let offsetX = 0;
         let offsetY = 0;
 
+        // Attack swing sound
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('attack-swing');
+        }
+
         switch (direction) {
             case 'up':
                 offsetY = -range / 2;
@@ -66,6 +71,12 @@ export default class CombatManager {
             target.takeDamage(amount, attacker);
         }
 
+        // Play combat sounds
+        if (this.scene.audioManager && attacker && attacker.constructor.name === 'Player' && target.constructor.name === 'Enemy') {
+            this.scene.audioManager.playSound('attack-hit');
+            this.scene.audioManager.playSound('enemy-hit');
+        }
+
         // Use attacker's current knockback force if available, otherwise use defaults
         const knockbackForce = attacker && attacker.currentKnockbackForce 
             ? attacker.currentKnockbackForce 
@@ -74,6 +85,11 @@ export default class CombatManager {
         if (attacker) {
             const knockback = this.calculateKnockback(attacker, target, knockbackForce);
             target.setVelocity(knockback.x, knockback.y);
+
+            // Play knockback sound
+            if (this.scene.audioManager) {
+                this.scene.audioManager.playSound('knockback', 0.5);
+            }
         }
 
         // Show floating damage text

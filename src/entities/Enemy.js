@@ -194,6 +194,10 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(0, 0);
         this.body.enable = false;
         this.play(`${this.texture.key}-death`, true);
+
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('death');
+        }
         
         // Grant XP to player
         this.grantXP();
