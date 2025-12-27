@@ -51,6 +51,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // Emit damage event for HUD updates
         this.scene.events.emit('player-damage', amount);
 
+        // Play hurt sound
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('player-hurt');
+        }
+
         // Visual feedback
         this.setTint(0xff0000);
         

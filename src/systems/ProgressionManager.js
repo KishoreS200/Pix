@@ -74,6 +74,11 @@ export default class ProgressionManager {
             this.scene.effectsManager.majorEvent('levelup');
         }
 
+        // Play level up sound
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('level-up');
+        }
+
         // Sound hook
         this.scene.events.emit('effect-level-up', { level: this.currentLevel });
 
