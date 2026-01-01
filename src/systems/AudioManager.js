@@ -34,6 +34,10 @@ export default class AudioManager {
         this.musicVolume = 60;
         this.muted = false;
 
+        // Dynamic music settings
+        this.dynamicMusicEnabled = true;
+        this.intensitySensitivity = 75;
+
         this.currentMusicKey = null;
         this.musicSource = null;
         this.musicSourceGain = null;
@@ -42,6 +46,21 @@ export default class AudioManager {
         this.musicCacheMax = 4;
 
         this.noiseBuffer = null;
+
+        // Dynamic music intensity system
+        this.currentCombatIntensity = 0;
+        this.targetCombatIntensity = 0;
+        this.intensityTransitionSpeed = 0.05;
+        this.intensityLayers = {
+            base: null,
+            layer1: null, // Rhythm/drums
+            layer2: null  // Bass/synth
+        };
+        this.intensityGains = {
+            base: null,
+            layer1: null,
+            layer2: null
+        };
 
         this._unlockHandlerBound = null;
 
@@ -152,6 +171,8 @@ export default class AudioManager {
             localStorage.setItem('audio_sfx_volume', String(this.sfxVolume));
             localStorage.setItem('audio_music_volume', String(this.musicVolume));
             localStorage.setItem('audio_muted', String(this.muted));
+            localStorage.setItem('dynamic_music_enabled', String(this.dynamicMusicEnabled));
+            localStorage.setItem('music_intensity_sensitivity', String(this.intensitySensitivity));
         } catch (error) {
             console.warn('[AudioManager] Failed to save audio settings:', error);
         }
@@ -495,11 +516,41 @@ export default class AudioManager {
                     gain.gain.linearRampToValueAtTime(0, now + fadeSec);
                 }
 
+                // Also fade out intensity layers
+                Object.values(this.intensityGains).forEach(gainNode => {
+                    if (gainNode) {
+                        gainNode.gain.cancelScheduledValues(now);
+                        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                        gainNode.gain.linearRampToValueAtTime(0, now + fadeSec);
+                    }
+                });
+
                 setTimeout(() => {
                     try {
                         this.musicSource?.stop();
                         this.musicSource?.disconnect();
                         this.musicSourceGain?.disconnect();
+                        
+                        // Cleanup intensity layers
+                        Object.values(this.intensityLayers).forEach(source => {
+                            if (source) {
+                                try {
+                                    source.stop();
+                                    source.disconnect();
+                                } catch (_) {
+                                    // ignore
+                                }
+                            }
+                        });
+                        Object.values(this.intensityGains).forEach(gainNode => {
+                            if (gainNode) {
+                                try {
+                                    gainNode.disconnect();
+                                } catch (_) {
+                                    // ignore
+                                }
+                            }
+                        });
                     } catch (_) {
                         // ignore
                     }
@@ -507,6 +558,13 @@ export default class AudioManager {
                     this.musicSource = null;
                     this.musicSourceGain = null;
                     this.currentMusicKey = null;
+                    
+                    // Reset intensity layers
+                    this.intensityLayers = { base: null, layer1: null, layer2: null };
+                    this.intensityGains = { base: null, layer1: null, layer2: null };
+                    this.currentCombatIntensity = 0;
+                    this.targetCombatIntensity = 0;
+                    
                     resolve();
                 }, fadeDuration + 20);
             } catch (error) {
@@ -514,6 +572,10 @@ export default class AudioManager {
                 this.musicSource = null;
                 this.musicSourceGain = null;
                 this.currentMusicKey = null;
+                this.intensityLayers = { base: null, layer1: null, layer2: null };
+                this.intensityGains = { base: null, layer1: null, layer2: null };
+                this.currentCombatIntensity = 0;
+                this.targetCombatIntensity = 0;
                 resolve();
             }
         });
@@ -591,6 +653,296 @@ export default class AudioManager {
         this._clampStereo(L, R);
 
         return buffer;
+    }
+
+    // Dynamic music intensity system methods
+    setCombatIntensity(intensity) {
+        this.targetCombatIntensity = clamp(intensity, 0, 100);
+    }
+
+    transitionToIntensity(level, duration = 1000) {
+        const targetLevel = clamp(level, 0, 100);
+        const ctx = this.audioContext;
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const transitionTime = duration / 1000;
+
+        // Smoothly transition all layer gains
+        Object.entries(this.intensityGains).forEach(([layerName, gainNode]) => {
+            if (gainNode) {
+                const layerGain = this._calculateLayerGain(layerName, targetLevel);
+                gainNode.gain.cancelScheduledValues(now);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                gainNode.gain.linearRampToValueAtTime(layerGain, now + transitionTime);
+            }
+        });
+
+        this.targetCombatIntensity = targetLevel;
+    }
+
+    getCombatIntensity() {
+        return this.currentCombatIntensity;
+    }
+
+    // Settings methods for dynamic music
+    setDynamicMusicEnabled(enabled) {
+        this.dynamicMusicEnabled = enabled;
+        this._saveSettings();
+        
+        if (!enabled) {
+            this.transitionToIntensity(0, 500);
+        }
+    }
+
+    setIntensitySensitivity(sensitivity) {
+        this.intensitySensitivity = Phaser.Math.Clamp(sensitivity, 0, 100);
+        this._saveSettings();
+    }
+
+    getDynamicMusicSettings() {
+        return {
+            enabled: this.dynamicMusicEnabled,
+            sensitivity: this.intensitySensitivity,
+            currentIntensity: this.currentCombatIntensity,
+            targetIntensity: this.targetCombatIntensity
+        };
+    }
+
+    update(time, delta) {
+        // Update intensity transitions
+        if (Math.abs(this.currentCombatIntensity - this.targetCombatIntensity) > 0.5) {
+            this.currentCombatIntensity = Phaser.Math.Linear(
+                this.currentCombatIntensity,
+                this.targetCombatIntensity,
+                this.intensityTransitionSpeed
+            );
+
+            // Update layer gains based on new intensity
+            this._updateIntensityLayers();
+        }
+    }
+
+    _updateIntensityLayers() {
+        const intensity = this.currentCombatIntensity;
+        const ctx = this.audioContext;
+        if (!ctx) return;
+
+        // Update each layer's gain based on intensity
+        Object.entries(this.intensityGains).forEach(([layerName, gainNode]) => {
+            if (gainNode) {
+                const targetGain = this._calculateLayerGain(layerName, intensity);
+                gainNode.gain.setValueAtTime(targetGain, ctx.currentTime);
+            }
+        });
+    }
+
+    _calculateLayerGain(layerName, intensity) {
+        switch (layerName) {
+            case 'base':
+                return 1.0; // Base layer always at full volume
+            
+            case 'layer1': // Rhythm/drums layer
+                if (intensity >= 40) {
+                    return (intensity - 40) / 60; // Fade in from 40% intensity
+                }
+                return 0;
+            
+            case 'layer2': // Bass/synth layer
+                if (intensity >= 60) {
+                    return (intensity - 60) / 40; // Fade in from 60% intensity
+                }
+                return 0;
+            
+            default:
+                return 0;
+        }
+    }
+
+    _createIntensityLayers(baseBuffer) {
+        if (!this.audioContext || !baseBuffer) return;
+
+        const ctx = this.audioContext;
+        
+        // Create base layer (original music)
+        this.intensityLayers.base = ctx.createBufferSource();
+        this.intensityLayers.base.buffer = baseBuffer;
+        this.intensityLayers.base.loop = true;
+        
+        this.intensityGains.base = ctx.createGain();
+        this.intensityGains.base.gain.setValueAtTime(1.0, ctx.currentTime);
+        
+        this.intensityLayers.base.connect(this.intensityGains.base);
+        this.intensityGains.base.connect(this.musicGainNode);
+
+        // Create intensity layer 1 (rhythm/drums)
+        this.intensityLayers.layer1 = ctx.createBufferSource();
+        this.intensityLayers.layer1.buffer = this._generateIntensityLayerBuffer('layer1', baseBuffer.duration);
+        this.intensityLayers.layer1.loop = true;
+        
+        this.intensityGains.layer1 = ctx.createGain();
+        this.intensityGains.layer1.gain.setValueAtTime(0, ctx.currentTime);
+        
+        this.intensityLayers.layer1.connect(this.intensityGains.layer1);
+        this.intensityGains.layer1.connect(this.musicGainNode);
+
+        // Create intensity layer 2 (bass/synth)
+        this.intensityLayers.layer2 = ctx.createBufferSource();
+        this.intensityLayers.layer2.buffer = this._generateIntensityLayerBuffer('layer2', baseBuffer.duration);
+        this.intensityLayers.layer2.loop = true;
+        
+        this.intensityGains.layer2 = ctx.createGain();
+        this.intensityGains.layer2.gain.setValueAtTime(0, ctx.currentTime);
+        
+        this.intensityLayers.layer2.connect(this.intensityGains.layer2);
+        this.intensityGains.layer2.connect(this.musicGainNode);
+
+        // Start all layers
+        const startTime = ctx.currentTime;
+        this.intensityLayers.base.start(startTime);
+        this.intensityLayers.layer1.start(startTime);
+        this.intensityLayers.layer2.start(startTime);
+
+        // Initial layer update
+        this._updateIntensityLayers();
+    }
+
+    _generateIntensityLayerBuffer(layerType, duration) {
+        if (!this.audioContext) return null;
+
+        const sampleRate = this.audioContext.sampleRate;
+        const frameCount = Math.floor(sampleRate * duration);
+        const buffer = this.audioContext.createBuffer(2, frameCount, sampleRate);
+        const L = buffer.getChannelData(0);
+        const R = buffer.getChannelData(1);
+
+        switch (layerType) {
+            case 'layer1': // Rhythm/drums
+                this._generateRhythmLayer(L, R, sampleRate, duration);
+                break;
+            case 'layer2': // Bass/synth
+                this._generateBassLayer(L, R, sampleRate, duration);
+                break;
+            default:
+                // Empty buffer
+                for (let i = 0; i < L.length; i++) {
+                    L[i] = 0;
+                    R[i] = 0;
+                }
+                break;
+        }
+
+        return buffer;
+    }
+
+    _generateRhythmLayer(L, R, sampleRate, duration) {
+        const baseFreq = 80; // Base drum frequency
+        const beatsPerMinute = 120;
+        const beatInterval = 60 / beatsPerMinute;
+        
+        for (let i = 0; i < L.length; i++) {
+            const t = i / sampleRate;
+            let s = 0;
+            
+            // Kick drum on beats
+            const beatPhase = (t / beatInterval) % 1;
+            if (beatPhase < 0.1) {
+                const kickEnv = Math.exp(-beatPhase * 15);
+                s += Math.sin(2 * Math.PI * baseFreq * t) * kickEnv * 0.3;
+            }
+            
+            // Hi-hat on off-beats
+            const hihatPhase = (t / (beatInterval / 2)) % 1;
+            if (hihatPhase < 0.05) {
+                const hihatEnv = Math.exp(-hihatPhase * 30);
+                s += (Math.random() * 2 - 1) * hihatEnv * 0.1;
+            }
+            
+            L[i] = s;
+            R[i] = s;
+        }
+    }
+
+    _generateBassLayer(L, R, sampleRate, duration) {
+        const baseFreq = 55; // Low bass frequency
+        
+        for (let i = 0; i < L.length; i++) {
+            const t = i / sampleRate;
+            let s = 0;
+            
+            // Deep bass with some modulation
+            s += Math.sin(2 * Math.PI * baseFreq * t) * 0.2;
+            s += Math.sin(2 * Math.PI * baseFreq * 1.5 * t + Math.sin(t * 2)) * 0.15;
+            s += Math.sin(2 * Math.PI * baseFreq * 2 * t) * 0.1;
+            
+            // Add some intensity modulation
+            const intensityMod = Math.sin(2 * Math.PI * 0.5 * t) * 0.1;
+            s += intensityMod;
+            
+            L[i] = s;
+            R[i] = s;
+        }
+    }
+
+    // Override playMusic to include intensity layers
+    async playMusic(key, loop = true, fadeDuration = 500) {
+        if (!this.audioContext) return;
+
+        if (this.currentMusicKey === key && this.musicSource) {
+            return;
+        }
+
+        await this.stopMusic(fadeDuration);
+
+        if (this.muted) return;
+
+        const buffer = this._getOrCreateMusicBuffer(key);
+        if (!buffer) return;
+
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = loop;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(1, now + fadeDuration / 1000);
+
+        src.connect(gain);
+        gain.connect(this.musicGainNode);
+
+        src.start(now);
+
+        this.musicSource = src;
+        this.musicSourceGain = gain;
+        this.currentMusicKey = key;
+
+        // Create intensity layers for the new music
+        this._createIntensityLayers(buffer);
+    }
+
+    _loadSettings() {
+        if (typeof localStorage === 'undefined') return;
+
+        try {
+            const master = localStorage.getItem('audio_master_volume');
+            const sfx = localStorage.getItem('audio_sfx_volume');
+            const music = localStorage.getItem('audio_music_volume');
+            const muted = localStorage.getItem('audio_muted');
+            const dynamicMusic = localStorage.getItem('dynamic_music_enabled');
+            const intensitySensitivity = localStorage.getItem('music_intensity_sensitivity');
+
+            if (master !== null) this.masterVolume = clamp(parseInt(master, 10), 0, 100);
+            if (sfx !== null) this.sfxVolume = clamp(parseInt(sfx, 10), 0, 100);
+            if (music !== null) this.musicVolume = clamp(parseInt(music, 10), 0, 100);
+            if (muted !== null) this.muted = muted === 'true';
+            if (dynamicMusic !== null) this.dynamicMusicEnabled = dynamicMusic === 'true';
+            if (intensitySensitivity !== null) this.intensitySensitivity = parseInt(intensitySensitivity, 10);
+        } catch (error) {
+            console.warn('[AudioManager] Failed to load audio settings:', error);
+        }
     }
 
     _clampStereo(L, R) {
@@ -807,6 +1159,12 @@ export default class AudioManager {
 
         this.musicBufferCache.clear();
         this.noiseBuffer = null;
+
+        // Clean up intensity layers
+        this.intensityLayers = { base: null, layer1: null, layer2: null };
+        this.intensityGains = { base: null, layer1: null, layer2: null };
+        this.currentCombatIntensity = 0;
+        this.targetCombatIntensity = 0;
 
         if (this.audioContext && this.ownsContext) {
             this.audioContext.close().catch(() => undefined);
