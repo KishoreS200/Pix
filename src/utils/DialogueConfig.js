@@ -13,6 +13,18 @@ export const DialogueConfig = {
             "The Glitch has spread far beyond The Core, corrupting everything in its path. Few dare venture into the wilderness.",
             "If you seek to restore this world, you must grow stronger. Defeat the corruption at its source - The Core itself.",
             "May the old code protect you on your journey."
+        ],
+        questOffers: [
+            {
+                questId: 'scout-mines',
+                dialogue: "Traveler, we need information. The Crystal Mines have been silent for weeks. Can you investigate and report back what you find there?",
+                acceptDialogue: "Be careful. Strange energy readings have been coming from below the mines. Return when you know more."
+            },
+            {
+                questId: 'defeat-final-boss',
+                dialogue: "The time has come. The Void Entity at The Core is the source of all corruption. You have proven yourself worthy. Will you face it?",
+                acceptDialogue: "This is a task of legends. May the old code guide you, brave warrior."
+            }
         ]
     },
     
@@ -23,6 +35,13 @@ export const DialogueConfig = {
             "The supply caravans stopped coming weeks ago. Too dangerous out there.",
             "If you find any coins in your travels, hold onto them. One day they'll be worth something again.",
             "Safe travels, friend. And watch out for the Corrupted Humans - they were once like us."
+        ],
+        questOffers: [
+            {
+                questId: 'defeat-second-boss',
+                dialogue: "The path to the city is blocked by a Crystalline Sentinel in the mines. Can you destroy it so trade can resume?",
+                acceptDialogue: "With the Sentinel gone, we may finally restore some commerce. Thank you!"
+            }
         ]
     },
     
@@ -33,6 +52,13 @@ export const DialogueConfig = {
             "I've prepared healing potions from the few uncorrupted herbs that remain. You'll find them scattered throughout the regions.",
             "Remember: your health will naturally regenerate over time, but potions provide instant relief in combat.",
             "Stay safe out there. I'll be here when you need to rest."
+        ],
+        questOffers: [
+            {
+                questId: 'gather-herbs',
+                dialogue: "My healing supplies are running low. Can you help me by collecting 3 health potions from your travels?",
+                acceptDialogue: "Thank you! These potions will help many in need of healing."
+            }
         ]
     },
     
@@ -43,6 +69,18 @@ export const DialogueConfig = {
             "The Forgotten Forest to the east is crawling with Glitch Fauna - twisted creatures corrupted by the anomaly.",
             "If you venture out there, stay alert. The enemies grow stronger the deeper you go.",
             "Your combat skills will improve with each victory. Don't give up!"
+        ],
+        questOffers: [
+            {
+                questId: 'hunt-forest-creatures',
+                dialogue: "Adventurer, I need your help. The forest is teeming with corrupted creatures. Can you hunt 5 of them to make our village safer?",
+                acceptDialogue: "Excellent! The forest creatures are dangerous, but I trust in your abilities. Return when you've completed the hunt."
+            },
+            {
+                questId: 'defeat-first-boss',
+                dialogue: "The Corrupted Nature Spirit has corrupted the heart of the forest. Someone must put it to rest. Will you do it?",
+                acceptDialogue: "This task is not for the faint of heart. The Spirit is powerful, but you are stronger. Bring honor to our village!"
+            }
         ]
     },
     
@@ -86,6 +124,13 @@ export const DialogueConfig = {
             "I maintain this shrine to preserve what little sanctity remains in this world.",
             "Rest here, traveler. The corruption cannot reach this sacred ground.",
             "To the south lie the Crystal Mines - a place of beauty turned to madness."
+        ],
+        questOffers: [
+            {
+                questId: 'clear-forest-insects',
+                dialogue: "The shrine grounds are infested with corrupted insects. Can you clear 10 of them to restore peace?",
+                acceptDialogue: "The shrine is peaceful once more. Your service honors the spirits."
+            }
         ]
     },
     
@@ -96,6 +141,13 @@ export const DialogueConfig = {
             "I've lived in these woods for decades. Watched them slowly decay into this nightmare.",
             "The Glitch Bugs are the least of your worries. Watch out for the Corrupted Wolves - they hunt in patterns.",
             "I'd leave, but... where would I go? This forest is my home, corrupted or not."
+        ],
+        questOffers: [
+            {
+                questId: 'hunt-wolves',
+                dialogue: "The Corrupted Wolves have become too aggressive lately. Hunt 5 of them for me?",
+                acceptDialogue: "Good. The forest will be safer for it. Be careful out there."
+            }
         ]
     },
     
@@ -109,6 +161,13 @@ export const DialogueConfig = {
             "I'm stuck here in this safe zone until someone can clear a path out.",
             "Those turrets will blast anything that moves. And the patrol drones... they never stop hunting.",
             "If you're heading deeper, watch your step. The automated defenses don't discriminate."
+        ],
+        questOffers: [
+            {
+                questId: 'destroy-turrets',
+                dialogue: "The turrets at the mine entrance are blocking any movement. Can you destroy 3 of them?",
+                acceptDialogue: "Finally, we can move around freely! Thank you, friend!"
+            }
         ]
     },
     
@@ -119,6 +178,13 @@ export const DialogueConfig = {
             "I set up shop here hoping to salvage what I could from the mines. Not much luck so far.",
             "The deeper tunnels are completely overrun. I wouldn't go down there without serious firepower.",
             "Strange energy readings have been coming from below. Something's wrong with the crystal formations."
+        ],
+        questOffers: [
+            {
+                questId: 'clear-drones',
+                dialogue: "Those patrol drones in the upper mines are making it impossible to work. Clear 5 of them?",
+                acceptDialogue: "Much appreciated! Now I might actually get some business done."
+            }
         ]
     },
     
@@ -132,6 +198,13 @@ export const DialogueConfig = {
             "The corrupted guards still patrol the streets, following their old orders even in death.",
             "We've established a few safe zones in the ruins. It's not much, but it's home.",
             "Beyond the southern border lies The Core. That's where this all started. That's where it must end."
+        ],
+        questOffers: [
+            {
+                questId: 'defeat-third-boss',
+                dialogue: "The Industrial Titan has enslaved this city for too long. Can you defeat it and free us?",
+                acceptDialogue: "You're our savior! The city can finally begin to heal."
+            }
         ]
     },
     
@@ -142,6 +215,13 @@ export const DialogueConfig = {
             "I've scavenged what I can from the ruins. Mostly worthless now, but old habits die hard.",
             "The Sentinel Machines in this sector are military-grade. Much more dangerous than the mining units.",
             "If you're planning to assault The Core, you'd better be at peak strength. No one's come back from there."
+        ],
+        questOffers: [
+            {
+                questId: 'destroy-sentinels',
+                dialogue: "Those Sentinel Machines are the biggest threat in the city. Can you destroy 4 of them?",
+                acceptDialogue: "Excellent! With those gone, maybe we can rebuild something here."
+            }
         ]
     },
     
@@ -153,6 +233,13 @@ export const DialogueConfig = {
             "The Core pulses with corrupted energy. You can feel it even from here.",
             "If you can reach The Core and stop the Void Entity... maybe we can reclaim our world.",
             "We're counting on you, traveler. You might be our last hope."
+        ],
+        questOffers: [
+            {
+                questId: 'eliminate-guards',
+                dialogue: "The corrupted guards are mindless but still dangerous. Destroy 6 of them to clear the streets.",
+                acceptDialogue: "Good work. At least the city will be a little safer now."
+            }
         ]
     }
 };
