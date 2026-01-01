@@ -75,6 +75,16 @@ export default class CombatIntensityManager {
         this.saveSettings();
     }
     
+    setBossActive(isActive) {
+        // When boss is active, maintain high intensity
+        if (isActive) {
+            this._setTargetIntensity(95);
+        } else {
+            // When boss is defeated, gradually return to normal
+            this._setTargetIntensity(30);
+        }
+    }
+    
     update(time, delta) {
         if (!this.dynamicMusicEnabled || !this.audioManager) return;
         

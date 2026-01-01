@@ -146,6 +146,13 @@ export default class ProgressionManager {
         this.saveProgression();
     }
     
+    // Calculate XP reward for a boss based on player level
+    getBossXPReward(baseBossXP) {
+        const levelBonus = this.currentLevel - 1;
+        // XP scales with player level (base * level multiplier)
+        return Math.floor(baseBossXP * (1 + levelBonus * 0.2));
+    }
+    
     getEnemiesDefeated() {
         return this.enemiesDefeated;
     }
