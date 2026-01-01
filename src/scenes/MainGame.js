@@ -10,6 +10,7 @@ import ProgressionManager from '../systems/ProgressionManager';
 import ParticleManager from '../systems/ParticleManager';
 import EffectsManager from '../systems/EffectsManager';
 import AudioManager from '../systems/AudioManager';
+import SettingsMenu from '../systems/SettingsMenu';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
@@ -31,6 +32,7 @@ export default class MainGame extends Phaser.Scene {
         this.particleManager = null;
         this.effectsManager = null;
         this.audioManager = null;
+        this.settingsMenu = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
         
@@ -84,6 +86,9 @@ export default class MainGame extends Phaser.Scene {
         // Initialize effects manager
         this.effectsManager = new EffectsManager(this);
 
+        // Initialize settings menu
+        this.settingsMenu = new SettingsMenu(this);
+
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
         
@@ -99,7 +104,7 @@ export default class MainGame extends Phaser.Scene {
             fill: '#00ffff'
         }).setScrollFactor(0);
 
-        this.add.text(10, 30, 'WASD/Arrows to Move | SPACE to Attack', {
+        this.add.text(10, 30, 'WASD/Arrows to Move | SPACE to Attack | ESC for Settings', {
             fontSize: '16px',
             fill: '#00ffff'
         }).setScrollFactor(0);
@@ -484,6 +489,13 @@ export default class MainGame extends Phaser.Scene {
         }
     }
 
+    update() {
+        // Update settings menu if it exists and is open
+        if (this.settingsMenu) {
+            this.settingsMenu.update();
+        }
+    }
+
     _rebuildPortals() {
         this.portalColliders.forEach((collider) => collider.destroy());
         this.portalColliders = [];
@@ -579,6 +591,10 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.effectsManager) {
             this.effectsManager.destroy();
+        }
+        
+        if (this.settingsMenu) {
+            this.settingsMenu.destroy();
         }
         
         // Clean up XP bar graphics
