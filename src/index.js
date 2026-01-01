@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Boot from './scenes/Boot';
 import Preload from './scenes/Preload';
+import Menu from './scenes/Menu';
 import MainGame from './scenes/MainGame';
 
 // Wait for DOM to be ready before initializing the game
@@ -29,7 +30,7 @@ function initializeGame() {
                 debug: false
             }
         },
-        scene: [Boot, Preload, MainGame],
+        scene: [Boot, Preload, Menu, MainGame],
         render: {
             pixelArt: true,
             antialias: false

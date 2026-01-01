@@ -18,7 +18,7 @@ export default class SettingsMenu {
         // UI styling constants
         this.styles = {
             width: 500,
-            height: 400,
+            height: 460,
             backgroundColor: 0x0a0a0a,
             borderColor: 0x00ffff,
             borderWidth: 3,
@@ -239,6 +239,9 @@ export default class SettingsMenu {
         
         // Reset to defaults button
         this.createResetButton(startY + spacing * 4);
+        
+        // Return to menu button (only if scene has a menu scene available)
+        this.createReturnToMenuButton(startY + spacing * 4 + 50);
         
         // Close instruction
         const closeText = this.scene.add.text(0, this.styles.height / 2 - 30, 'Press ESC to close', {
@@ -645,6 +648,103 @@ export default class SettingsMenu {
         });
         
         this.container.add(button);
+    }
+    
+    createReturnToMenuButton(y) {
+        const buttonWidth = 140;
+        const buttonHeight = 40;
+        
+        const button = this.scene.add.container(0, y);
+        
+        // Button background
+        const bg = this.scene.add.graphics()
+            .setInteractive(
+                new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight),
+                Phaser.Geom.Rectangle.Contains
+            );
+        
+        // Different color for return button to distinguish it
+        bg.fillStyle(0x664400, 0.9);
+        bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        bg.lineStyle(2, 0xffaa00, 1);
+        bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        
+        // Button text
+        const text = this.scene.add.text(0, 0, 'Main Menu', {
+            fontSize: '16px',
+            fill: '#ffaa00',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        button.add([bg, text]);
+        
+        // Hover effect
+        bg.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0x885500, 0.9);
+            bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            bg.lineStyle(2, 0xffcc00, 1);
+            bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            
+            this.scene.tweens.add({
+                targets: button,
+                scaleX: 1.05,
+                scaleY: 1.05,
+                duration: 100
+            });
+        });
+        
+        bg.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x664400, 0.9);
+            bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            bg.lineStyle(2, 0xffaa00, 1);
+            bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            
+            this.scene.tweens.add({
+                targets: button,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 100
+            });
+        });
+        
+        // Click handler
+        bg.on('pointerdown', () => {
+            // Play confirmation sound
+            if (!this.audioManager.muted) {
+                this.audioManager.playSound('menu-confirm', 0.7);
+            }
+            
+            // Visual feedback
+            this.scene.tweens.add({
+                targets: button,
+                scaleX: 0.95,
+                scaleY: 0.95,
+                duration: 50,
+                yoyo: true
+            });
+            
+            // Return to main menu
+            this.returnToMenu();
+        });
+        
+        this.container.add(button);
+    }
+    
+    returnToMenu() {
+        // Close settings menu
+        this.close();
+        
+        // Stop current music
+        if (this.audioManager) {
+            this.audioManager.stopMusic();
+        }
+        
+        // Transition to menu scene
+        this.scene.scene.stop('MainGame');
+        this.scene.scene.start('Menu');
     }
     
     resetToDefaults() {
