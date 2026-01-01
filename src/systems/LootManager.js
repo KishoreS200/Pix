@@ -8,21 +8,28 @@ export default class LootManager {
         this.lootItems = [];
     }
 
-    spawnLootAtPosition(x, y) {
-        // Check if loot should drop (70% chance)
-        if (Math.random() > LootConfig.dropChance) {
+    spawnLootAtPosition(x, y, forcedType = null, forcedValue = null) {
+        // Check if loot should drop (70% chance for regular enemies, 100% for boss)
+        if (Math.random() > (forcedType ? 1 : LootConfig.dropChance)) {
             return null;
         }
 
-        // Determine loot type based on weighted distribution
-        const selectedType = getLootTypeByWeight();
-
-        // Determine value based on type
+        // Determine loot type
+        let selectedType;
         let value;
-        if (selectedType.type === 'coin') {
-            value = Phaser.Math.Between(selectedType.minValue, selectedType.maxValue);
+
+        if (forcedType) {
+            // Boss loot or forced loot
+            selectedType = LootConfig.dropTypes.find(t => t.type === forcedType) || LootConfig.dropTypes[0];
+            value = forcedValue || selectedType.value;
         } else {
-            value = selectedType.value;
+            // Regular enemy loot
+            selectedType = getLootTypeByWeight();
+            if (selectedType.type === 'coin') {
+                value = Phaser.Math.Between(selectedType.minValue, selectedType.maxValue);
+            } else {
+                value = selectedType.value;
+            }
         }
 
         // Create loot item
@@ -42,6 +49,9 @@ export default class LootManager {
                 this.scene.effectsManager.screenFlash(0xff88aa, 120, 0.2);
             } else if (selectedType.type === 'powerup') {
                 this.scene.effectsManager.screenFlash(0x88ffff, 150, 0.3);
+            } else if (forcedType && forcedType !== 'coin') {
+                // Boss item - stronger effect
+                this.scene.effectsManager.screenFlash(0xffd700, 150, 0.5);
             }
         }
 
@@ -53,6 +63,43 @@ export default class LootManager {
             this.despawnLootItem(lootItem);
         });
 
+        return lootItem;
+    }
+
+    // Spawn boss-specific loot items (artifacts, essence, etc.)
+    spawnBossLoot(x, y, itemType, value, rarity = 'epic') {
+        const visuals = LootConfig.lootVisuals[itemType] || LootConfig.lootVisuals.powerup;
+        
+        // Create loot item with custom type
+        const lootItem = new LootItem(this.scene, x, y, itemType, value);
+        lootItem.rarity = rarity;
+        lootItem.setTint(LootConfig.rarityColors[rarity] || 0xffffff);
+        this.lootItems.push(lootItem);
+        
+        // Enhanced visual effects for boss loot
+        if (this.scene.particleManager) {
+            this.scene.particleManager.createLootSparkles(x, y, itemType);
+            // Additional sparkles for boss loot
+            this.scene.particleManager.createDeathExplosion(x, y, 'boss', 10);
+        }
+        
+        if (this.scene.effectsManager) {
+            this.scene.effectsManager.screenFlash(0xffd700, 150, 0.4);
+        }
+        
+        // Boss loot sound
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('boss-loot');
+        }
+        
+        // Emit event
+        this.scene.events.emit('boss-loot-dropped', { x, y, type: itemType, value, rarity });
+        
+        // Auto-despawn after 60 seconds for boss loot
+        this.scene.time.delayedCall(60000, () => {
+            this.despawnLootItem(lootItem);
+        });
+        
         return lootItem;
     }
 

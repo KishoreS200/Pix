@@ -11,6 +11,7 @@ import ParticleManager from '../systems/ParticleManager';
 import EffectsManager from '../systems/EffectsManager';
 import AudioManager from '../systems/AudioManager';
 import CombatIntensityManager from '../systems/CombatIntensityManager';
+import BossArenaManager from '../systems/BossArenaManager';
 import SettingsMenu from '../systems/SettingsMenu';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
@@ -34,6 +35,7 @@ export default class MainGame extends Phaser.Scene {
         this.effectsManager = null;
         this.audioManager = null;
         this.combatIntensityManager = null;
+        this.bossArenaManager = null;
         this.settingsMenu = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
@@ -103,6 +105,9 @@ export default class MainGame extends Phaser.Scene {
 
         // Initialize combat intensity manager for dynamic music (after audioManager exists)
         this.combatIntensityManager = new CombatIntensityManager(this, this.audioManager);
+
+        // Initialize boss arena manager (after other managers)
+        this.bossArenaManager = new BossArenaManager(this);
 
         this.regionText = this.add.text(10, 10, '', {
             fontSize: '16px',
@@ -420,6 +425,70 @@ export default class MainGame extends Phaser.Scene {
                 this.audioManager.stopMusic(800);
             }
         });
+
+        // Boss events
+        this.events.on('boss-spawned', (data) => {
+            console.log(`Boss spawned: ${data.name} in ${data.region}`);
+            
+            // Pause regular combat intensity during boss fight
+            if (this.combatIntensityManager) {
+                this.combatIntensityManager.setBossActive(true);
+            }
+        });
+
+        this.events.on('boss-defeated', (data) => {
+            console.log(`Boss defeated: ${data.name}`);
+            
+            // Resume normal combat intensity
+            if (this.combatIntensityManager) {
+                this.combatIntensityManager.setBossActive(false);
+            }
+        });
+
+        this.events.on('boss-completed', (data) => {
+            console.log(`Boss encounter completed: ${data.region}`);
+            
+            // If final boss was defeated, show game complete message
+            if (data.isFinalBoss) {
+                this.showGameCompleteMessage();
+            }
+        });
+    }
+
+    showGameCompleteMessage() {
+        const { width, height } = this.cameras.main;
+        
+        // Dark overlay
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(500);
+        
+        // Victory text
+        const text = this.add.text(width / 2, height / 2, 'GAME COMPLETE!', {
+            fontSize: '64px',
+            fontFamily: 'monospace',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        });
+        text.setOrigin(0.5);
+        text.setScrollFactor(0);
+        text.setDepth(501);
+        text.setShadow(4, 4, '#000000', 8);
+        
+        // Subtitle
+        const subtitle = this.add.text(width / 2, height / 2 + 80, 'You have conquered the Void!', {
+            fontSize: '24px',
+            fontFamily: 'monospace',
+            color: '#ffffff'
+        });
+        subtitle.setOrigin(0.5);
+        subtitle.setScrollFactor(0);
+        subtitle.setDepth(501);
+        
+        // Play victory fanfare
+        if (this.audioManager) {
+            this.audioManager.playMusic('music-boss-defeated', false, 500);
+        }
     }
 
     updateCoinText() {
@@ -659,6 +728,11 @@ export default class MainGame extends Phaser.Scene {
 
             // Update power-up state
             this.player.updatePowerUp(time);
+            
+            // Update boss arena manager (checks for boss spawn proximity)
+            if (this.bossArenaManager) {
+                this.bossArenaManager.update(this.player, delta);
+            }
         } else {
             this.player.setVelocity(0, 0);
         }
@@ -705,6 +779,11 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.combatIntensityManager) {
             this.combatIntensityManager.destroy();
+        }
+        
+        if (this.bossArenaManager) {
+            this.bossArenaManager.destroy();
+            this.bossArenaManager = null;
         }
         
         if (this.settingsMenu) {

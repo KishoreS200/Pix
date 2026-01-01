@@ -111,4 +111,50 @@ export default class FloatingText {
             }
         });
     }
+
+    static showBossDamage(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `-${amount}`, {
+            fill: '#ff4444', // Red for boss damage
+            fontSize: '24px',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+    }
+
+    static showBossXP(scene, x, y, amount) {
+        new FloatingText(scene, x, y, `+${amount} XP`, {
+            fill: '#ff00ff', // Magenta for boss XP
+            fontSize: '22px',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+    }
+
+    static showBossPhase(scene, x, y, phaseName) {
+        const text = scene.add.text(x, y, phaseName, {
+            fontSize: '28px',
+            fill: '#ff0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+
+        text.setScrollFactor(0);
+        text.setDepth(200);
+        text.setOrigin(0.5, 0.5);
+
+        // Glitch and fade animation
+        scene.tweens.add({
+            targets: text,
+            y: y - 30,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+                text.destroy();
+            }
+        });
+    }
 }

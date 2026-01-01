@@ -132,12 +132,63 @@ export const SoundConfig = {
         duration: 0.2,
         volume: 0.3,
         envelope: { attack: 0.02, decay: 0.05, sustain: 0.6, release: 0.13 }
+    },
+    
+    // Boss Attack Sounds
+    'boss-swing': {
+        type: 'sweep',
+        startFreq: 300,
+        endFreq: 150,
+        duration: 0.25,
+        volume: 0.4,
+        envelope: { attack: 0.01, decay: 0.08, sustain: 0.4, release: 0.1 }
+    },
+    'boss-slam': {
+        type: 'impact',
+        frequency: 80,
+        duration: 0.4,
+        volume: 0.5,
+        noise: true,
+        envelope: { attack: 0.01, decay: 0.15, sustain: 0.3, release: 0.14 }
+    },
+    'boss-projectile': {
+        type: 'sweep',
+        startFreq: 600,
+        endFreq: 300,
+        duration: 0.3,
+        volume: 0.35,
+        modulation: true,
+        envelope: { attack: 0.02, decay: 0.1, sustain: 0.5, release: 0.1 }
+    },
+    'boss-teleport': {
+        type: 'tone',
+        frequency: 880,
+        duration: 0.3,
+        volume: 0.2,
+        envelope: { attack: 0.05, decay: 0.15, sustain: 0.3, release: 0.1 }
+    },
+    'boss-charge': {
+        type: 'sweep',
+        startFreq: 100,
+        endFreq: 400,
+        duration: 0.5,
+        volume: 0.35,
+        noise: true,
+        envelope: { attack: 0.1, decay: 0.2, sustain: 0.2, release: 0.2 }
+    },
+    'boss-summon': {
+        type: 'arpeggio',
+        frequencies: [440, 554, 659, 880],
+        noteDuration: 0.1,
+        duration: 0.5,
+        volume: 0.3,
+        envelope: { attack: 0.02, decay: 0.08, sustain: 0.5, release: 0.1 }
     }
 };
 
 // Categories for easier management
 export const SoundCategories = {
-    COMBAT: ['attack-swing', 'attack-hit', 'enemy-hit', 'knockback', 'player-hurt', 'death'],
+    COMBAT: ['attack-swing', 'attack-hit', 'enemy-hit', 'knockback', 'player-hurt', 'death', 'boss-swing', 'boss-slam', 'boss-projectile', 'boss-teleport', 'boss-charge', 'boss-summon'],
     LOOT: ['coin-pickup', 'potion-pickup', 'powerup-pickup', 'boss-loot'],
     UI: ['level-up', 'boss-phase', 'boss-defeated', 'game-over', 'menu-select', 'menu-confirm']
 };
