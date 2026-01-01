@@ -223,20 +223,13 @@ export default class MainGame extends Phaser.Scene {
         this.musicIntensityContainer = this.add.container(x, y).setScrollFactor(0).setDepth(100);
         
         // Background circle
-        const bgCircle = this.add.graphics();
-        bgCircle.fillStyle(0x006666, 0.8);
-        bgCircle.fillCircle(0, 0, 15);
-        bgCircle.lineStyle(2, 0x00ffff, 0.6);
-        bgCircle.strokeCircle(0, 0, 15);
+        this.musicIntensityBg = this.add.graphics();
+        this.musicIntensityContainer.add(this.musicIntensityBg);
         
         // Intensity bars (4 vertical bars)
         this.intensityBars = [];
         for (let i = 0; i < 4; i++) {
             const bar = this.add.graphics();
-            const barHeight = 2 + (i * 3);
-            const barY = -8 + (i * 5);
-            bar.fillStyle(0x00ffff, 0.3);
-            bar.fillRect(-10 + (i * 7), barY, 4, barHeight);
             this.intensityBars.push(bar);
             this.musicIntensityContainer.add(bar);
         }
@@ -244,49 +237,72 @@ export default class MainGame extends Phaser.Scene {
         // Label
         this.musicIntensityLabel = this.add.text(0, 25, 'MUSIC', {
             fontSize: '10px',
-            fill: '#00ffff'
+            fill: '#00ffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5, 0);
         
-        this.musicIntensityContainer.add([bgCircle, this.musicIntensityLabel]);
+        this.musicIntensityContainer.add(this.musicIntensityLabel);
         
         // Set initial state
         this.updateMusicIntensityIndicator(0);
     }
 
     updateMusicIntensityIndicator(intensity) {
-        if (!this.musicIntensityContainer || !this.intensityBars) return;
+        if (!this.musicIntensityContainer || !this.intensityBars || !this.musicIntensityBg) return;
         
         const level = Math.floor(intensity / 25); // 0-4 levels
         
+        // Colors based on intensity level
+        let primaryColor, secondaryColor, bgColor;
+        if (level < 2) {
+            primaryColor = 0x00aaff; // Blue (Calm)
+            secondaryColor = 0x0066aa;
+            bgColor = 0x001122;
+        } else if (level < 3) {
+            primaryColor = 0xffff00; // Yellow (Alert)
+            secondaryColor = 0xaaaa00;
+            bgColor = 0x222200;
+        } else {
+            primaryColor = 0xff3300; // Red (Combat)
+            secondaryColor = 0xaa2200;
+            bgColor = 0x220000;
+        }
+
+        // Update background
+        this.musicIntensityBg.clear();
+        this.musicIntensityBg.fillStyle(bgColor, 0.8);
+        this.musicIntensityBg.fillCircle(0, 0, 15);
+        this.musicIntensityBg.lineStyle(2, secondaryColor, 0.6);
+        this.musicIntensityBg.strokeCircle(0, 0, 15);
+
         // Update bars
         this.intensityBars.forEach((bar, index) => {
             bar.clear();
+            const barHeight = 2 + (index * 3);
+            const barY = -8 + (index * 5);
+            const barX = -10 + (index * 7);
+
             if (index <= level) {
-                // Active bar with color based on intensity level
-                if (level < 2) {
-                    bar.fillStyle(0x00aaff, 0.8); // Blue for low intensity
-                } else if (level < 3) {
-                    bar.fillStyle(0x00ffff, 0.8); // Cyan for medium intensity
-                } else {
-                    bar.fillStyle(0xff6600, 0.8); // Orange for high intensity
-                }
-                bar.fillRect(-10 + (index * 7), -8 + (index * 5), 4, 2 + (index * 3));
+                // Active bar
+                bar.fillStyle(primaryColor, 0.8);
+                bar.fillRect(barX, barY, 4, barHeight);
                 
                 // Add glow effect for high intensity
                 if (level >= 3) {
                     bar.lineStyle(1, 0xffaa00, 0.5);
-                    bar.strokeRect(-10 + (index * 7), -8 + (index * 5), 4, 2 + (index * 3));
+                    bar.strokeRect(barX, barY, 4, barHeight);
                 }
+            } else {
+                // Inactive bar
+                bar.fillStyle(secondaryColor, 0.2);
+                bar.fillRect(barX, barY, 4, barHeight);
             }
         });
         
-        // Update container tint based on intensity
-        if (level < 2) {
-            this.musicIntensityContainer.setTint(0x0066aa); // Blue tint
-        } else if (level < 3) {
-            this.musicIntensityContainer.setTint(0x00aacc); // Cyan tint
-        } else {
-            this.musicIntensityContainer.setTint(0xcc6600); // Orange tint
+        // Update label color
+        if (this.musicIntensityLabel) {
+            const colorStr = '#' + primaryColor.toString(16).padStart(6, '0');
+            this.musicIntensityLabel.setColor(colorStr);
         }
     }
 
@@ -797,6 +813,10 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.xpBarBg) {
             this.xpBarBg.destroy();
+        }
+
+        if (this.musicIntensityContainer) {
+            this.musicIntensityContainer.destroy();
         }
     }
 }
