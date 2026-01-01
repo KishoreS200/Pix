@@ -12,7 +12,8 @@ export default class InputManager {
             downArrow: Phaser.Input.Keyboard.KeyCodes.DOWN,
             leftArrow: Phaser.Input.Keyboard.KeyCodes.LEFT,
             rightArrow: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-            space: Phaser.Input.Keyboard.KeyCodes.SPACE
+            space: Phaser.Input.Keyboard.KeyCodes.SPACE,
+            interact: Phaser.Input.Keyboard.KeyCodes.E
         });
     }
 
@@ -42,5 +43,9 @@ export default class InputManager {
 
     isAttackJustPressed() {
         return Phaser.Input.Keyboard.JustDown(this.keys.space);
+    }
+    
+    isInteractJustPressed() {
+        return Phaser.Input.Keyboard.JustDown(this.keys.interact);
     }
 }
