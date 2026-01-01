@@ -2,6 +2,7 @@ import GlitchFauna from '../entities/GlitchFauna';
 import CorruptedHuman from '../entities/CorruptedHuman';
 import SentinelMachine from '../entities/SentinelMachine';
 import { Regions } from '../utils/RegionConfig';
+import { isInSafeZone } from '../utils/NPCConfig';
 
 export default class EnemySpawner {
     constructor(scene) {
@@ -9,33 +10,42 @@ export default class EnemySpawner {
         this.enemies = scene.physics.add.group();
         this.spawnPositions = {
             [Regions.SILENT_VILLAGE]: [
-                { type: 'corrupted_human', x: 300, y: 400 },
-                { type: 'corrupted_human', x: 1300, y: 800 }
+                // Enemies spawn outside the village safe zone
+                { type: 'corrupted_human', x: 150, y: 200 },
+                { type: 'corrupted_human', x: 1450, y: 300 },
+                { type: 'corrupted_human', x: 200, y: 1000 },
+                { type: 'corrupted_human', x: 1400, y: 1000 }
             ],
             [Regions.FORGOTTEN_FOREST]: [
+                // Enemies spawn outside safe zones (shrine and hermit grove)
                 { type: 'glitch_fauna', x: 400, y: 300, subType: 'glitch_bug' },
-                { type: 'glitch_fauna', x: 800, y: 600, subType: 'glitch_bug' },
-                { type: 'glitch_fauna', x: 1200, y: 400, subType: 'glitch_bug' },
-                { type: 'glitch_fauna', x: 500, y: 1200, subType: 'glitch_bug' },
-                { type: 'glitch_fauna', x: 1500, y: 1000, subType: 'corrupted_wolf' },
-                { type: 'glitch_fauna', x: 200, y: 1500, subType: 'corrupted_wolf' }
+                { type: 'glitch_fauna', x: 2000, y: 600, subType: 'glitch_bug' },
+                { type: 'glitch_fauna', x: 2100, y: 400, subType: 'glitch_bug' },
+                { type: 'glitch_fauna', x: 300, y: 1600, subType: 'glitch_bug' },
+                { type: 'glitch_fauna', x: 1800, y: 1200, subType: 'corrupted_wolf' },
+                { type: 'glitch_fauna', x: 2200, y: 1500, subType: 'corrupted_wolf' },
+                { type: 'glitch_fauna', x: 200, y: 800, subType: 'glitch_bug' }
             ],
             [Regions.CRYSTAL_MINES]: [
-                { type: 'sentinel_machine', x: 300, y: 300, subType: 'turret' },
+                // Enemies spawn outside mining camp safe zone
+                { type: 'sentinel_machine', x: 300, y: 1000, subType: 'turret' },
                 { type: 'sentinel_machine', x: 1500, y: 300, subType: 'turret' },
                 { type: 'sentinel_machine', x: 900, y: 1500, subType: 'turret' },
-                { type: 'sentinel_machine', x: 600, y: 800, subType: 'patrol_drone' },
-                { type: 'sentinel_machine', x: 1200, y: 1200, subType: 'patrol_drone' }
+                { type: 'sentinel_machine', x: 400, y: 1200, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 1200, y: 1200, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 1400, y: 800, subType: 'patrol_drone' }
             ],
             [Regions.BROKEN_CITY]: [
-                { type: 'corrupted_human', x: 500, y: 500, subType: 'city_guard' },
+                // Enemies spawn outside safe shelters
+                { type: 'corrupted_human', x: 800, y: 500, subType: 'city_guard' },
                 { type: 'corrupted_human', x: 1500, y: 500, subType: 'city_guard' },
-                { type: 'corrupted_human', x: 1000, y: 1500, subType: 'city_guard' },
-                { type: 'sentinel_machine', x: 400, y: 1000, subType: 'patrol_drone' },
-                { type: 'sentinel_machine', x: 1600, y: 1000, subType: 'patrol_drone' },
-                { type: 'sentinel_machine', x: 200, y: 1800, subType: 'patrol_drone' },
-                { type: 'sentinel_machine', x: 1800, y: 1800, subType: 'patrol_drone' },
-                { type: 'sentinel_machine', x: 1000, y: 1000, subType: 'turret' },
+                { type: 'corrupted_human', x: 2000, y: 1500, subType: 'city_guard' },
+                { type: 'corrupted_human', x: 1600, y: 2000, subType: 'city_guard' },
+                { type: 'sentinel_machine', x: 800, y: 800, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 1800, y: 1000, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 700, y: 1800, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 1800, y: 2100, subType: 'patrol_drone' },
+                { type: 'sentinel_machine', x: 2000, y: 1000, subType: 'turret' },
                 { type: 'sentinel_machine', x: 1000, y: 200, subType: 'turret' }
             ],
             [Regions.THE_CORE]: []
@@ -106,7 +116,12 @@ export default class EnemySpawner {
         this.clearEnemies();
         const spawns = this.spawnPositions[region] || [];
         spawns.forEach(spawn => {
-            this.spawnEnemy(spawn.type, spawn.x, spawn.y, spawn.subType);
+            // Check if spawn position is in a safe zone
+            if (!isInSafeZone(region, spawn.x, spawn.y)) {
+                this.spawnEnemy(spawn.type, spawn.x, spawn.y, spawn.subType);
+            } else {
+                console.log(`Skipping enemy spawn at (${spawn.x}, ${spawn.y}) - in safe zone`);
+            }
         });
     }
 

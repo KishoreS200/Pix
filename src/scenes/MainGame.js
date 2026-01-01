@@ -13,6 +13,8 @@ import AudioManager from '../systems/AudioManager';
 import CombatIntensityManager from '../systems/CombatIntensityManager';
 import BossArenaManager from '../systems/BossArenaManager';
 import SettingsMenu from '../systems/SettingsMenu';
+import InteractionManager from '../systems/InteractionManager';
+import SafeZoneVisualizer from '../systems/SafeZoneVisualizer';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
 import { RegionConfig, Regions } from '../utils/RegionConfig';
@@ -37,6 +39,8 @@ export default class MainGame extends Phaser.Scene {
         this.combatIntensityManager = null;
         this.bossArenaManager = null;
         this.settingsMenu = null;
+        this.interactionManager = null;
+        this.safeZoneVisualizer = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
         
@@ -92,6 +96,12 @@ export default class MainGame extends Phaser.Scene {
 
         // Initialize settings menu
         this.settingsMenu = new SettingsMenu(this);
+        
+        // Initialize interaction manager
+        this.interactionManager = new InteractionManager(this);
+        
+        // Initialize safe zone visualizer
+        this.safeZoneVisualizer = new SafeZoneVisualizer(this);
 
         const startingRegion = RegionConfig[Regions.SILENT_VILLAGE];
         this.player = new Player(this, startingRegion.spawn.x, startingRegion.spawn.y);
@@ -108,14 +118,20 @@ export default class MainGame extends Phaser.Scene {
 
         // Initialize boss arena manager (after other managers)
         this.bossArenaManager = new BossArenaManager(this);
+        
+        // Spawn NPCs for the starting region
+        this.interactionManager.spawnNPCs(Regions.SILENT_VILLAGE);
+        
+        // Visualize safe zones
+        this.safeZoneVisualizer.visualizeSafeZones(Regions.SILENT_VILLAGE);
 
         this.regionText = this.add.text(10, 10, '', {
             fontSize: '16px',
             fill: '#00ffff'
         }).setScrollFactor(0);
 
-        this.add.text(10, 30, 'WASD/Arrows to Move | SPACE to Attack | ESC for Settings', {
-            fontSize: '16px',
+        this.add.text(10, 30, 'WASD/Arrows to Move | SPACE to Attack | E to Interact | ESC for Settings', {
+            fontSize: '14px',
             fill: '#00ffff'
         }).setScrollFactor(0);
 
@@ -660,6 +676,16 @@ export default class MainGame extends Phaser.Scene {
                 this.enemySpawner.spawnWave(regionName);
             }
         }
+        
+        // Spawn NPCs for the new region
+        if (this.interactionManager) {
+            this.interactionManager.spawnNPCs(regionName);
+        }
+        
+        // Visualize safe zones for new region
+        if (this.safeZoneVisualizer) {
+            this.safeZoneVisualizer.visualizeSafeZones(regionName);
+        }
 
         this._rebuildPortals();
 
@@ -749,6 +775,11 @@ export default class MainGame extends Phaser.Scene {
             if (this.bossArenaManager) {
                 this.bossArenaManager.update(this.player, delta);
             }
+            
+            // Update interaction manager (check for NPC interactions)
+            if (this.interactionManager) {
+                this.interactionManager.update(this.player);
+            }
         } else {
             this.player.setVelocity(0, 0);
         }
@@ -804,6 +835,14 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.settingsMenu) {
             this.settingsMenu.destroy();
+        }
+        
+        if (this.interactionManager) {
+            this.interactionManager.shutdown();
+        }
+        
+        if (this.safeZoneVisualizer) {
+            this.safeZoneVisualizer.destroy();
         }
         
         // Clean up XP bar graphics
