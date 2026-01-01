@@ -14,6 +14,7 @@ import CombatIntensityManager from '../systems/CombatIntensityManager';
 import BossArenaManager from '../systems/BossArenaManager';
 import SettingsMenu from '../systems/SettingsMenu';
 import InteractionManager from '../systems/InteractionManager';
+import QuestManager from '../systems/QuestManager';
 import SafeZoneVisualizer from '../systems/SafeZoneVisualizer';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
@@ -40,6 +41,7 @@ export default class MainGame extends Phaser.Scene {
         this.bossArenaManager = null;
         this.settingsMenu = null;
         this.interactionManager = null;
+        this.questManager = null;
         this.safeZoneVisualizer = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
@@ -99,6 +101,9 @@ export default class MainGame extends Phaser.Scene {
         
         // Initialize interaction manager
         this.interactionManager = new InteractionManager(this);
+        
+        // Initialize quest manager
+        this.questManager = new QuestManager(this);
         
         // Initialize safe zone visualizer
         this.safeZoneVisualizer = new SafeZoneVisualizer(this);

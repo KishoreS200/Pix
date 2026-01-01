@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import NPC from '../entities/NPC';
 import { getNPCsForRegion } from '../utils/NPCConfig';
 import { getNPCDialogue } from '../utils/DialogueConfig';
+import { getQuestConfig } from '../utils/QuestConfig';
 import AudioManager from './AudioManager';
 
 export default class InteractionManager {
@@ -24,6 +25,13 @@ export default class InteractionManager {
         this.currentDialogueIndex = 0;
         this.currentDialogueLines = [];
         this.currentNPCName = '';
+        this.currentNPC = null;
+        
+        // Quest state
+        this.isOfferingQuest = false;
+        this.currentQuestId = null;
+        this.questMode = 'dialogue'; // 'dialogue' or 'quest'
+        this.questButton = null;
         
         // Audio
         this.audioManager = AudioManager.getInstance(scene);
@@ -119,6 +127,30 @@ export default class InteractionManager {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+        
+        // Quest accept button (hidden by default)
+        this.questButton = this.scene.add.container(boxX, boxY + boxHeight / 2 + 30);
+        this.questButton.setScrollFactor(0);
+        this.questButton.setDepth(210);
+        this.questButton.setVisible(false);
+        
+        // Button background
+        const buttonBg = this.scene.add.graphics();
+        buttonBg.fillStyle(0x00ffff, 0.9);
+        buttonBg.fillRoundedRect(-60, -15, 120, 30, 5);
+        this.questButton.add(buttonBg);
+        
+        // Button text
+        this.questButtonText = this.scene.add.text(0, 0, '[E] Accept Quest', {
+            fontSize: '14px',
+            fontFamily: 'monospace',
+            color: '#000000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.questButton.add(this.questButtonText);
+        
+        // Add button to dialogue container
+        this.dialogueContainer.add(this.questButton);
     }
     
     spawnNPCs(region) {
@@ -187,21 +219,109 @@ export default class InteractionManager {
         }
     }
     
+    /**
+     * Get available quests from an NPC
+     */
+    getAvailableQuests(npcId) {
+        const npcConfig = getNPCsForRegion(this.currentRegion).find(npc => npc.id === npcId);
+        if (!npcConfig || !npcConfig.questsOffered) {
+            return [];
+        }
+        
+        // Filter out already completed quests
+        const availableQuests = npcConfig.questsOffered.filter(questId => {
+            if (!this.scene.questManager) return true;
+            return !this.scene.questManager.completedQuests.has(questId);
+        });
+        
+        return availableQuests;
+    }
+    
     startInteraction(npc) {
         const interactionData = npc.interact();
         const dialogueData = getNPCDialogue(interactionData.dialogueId);
         
+        this.currentNPC = npc;
         this.currentDialogueLines = dialogueData.dialogues;
         this.currentNPCName = dialogueData.name;
         this.currentDialogueIndex = 0;
         
-        this.openDialogue();
-        this.displayCurrentDialogue();
+        // Check for quest completion first
+        if (this.scene.questManager && this.scene.questManager.hasQuestsFromNPC(npc.npcId)) {
+            const completableQuests = this.scene.questManager.getQuestsFromNPC(npc.npcId)
+                .filter(quest => this.scene.questManager.canTurnInQuest(quest.questId));
+            
+            if (completableQuests.length > 0) {
+                // Complete the quest
+                this.completeQuest(npc, completableQuests[0]);
+                return;
+            }
+        }
+        
+        // Check for available quests
+        const availableQuests = this.getAvailableQuests(npc.npcId);
+        
+        if (availableQuests.length > 0 && dialogueData.questOffers) {
+            // Start quest offer dialogue
+            this.startQuestOffer(npc, dialogueData, availableQuests[0]);
+        } else {
+            // Start normal dialogue
+            this.openDialogue();
+            this.displayCurrentDialogue();
+        }
         
         // Play interaction sound
         if (this.audioManager) {
             this.audioManager.playSound('menu-select');
         }
+    }
+    
+    /**
+     * Complete a quest with an NPC
+     */
+    completeQuest(npc, quest) {
+        const questConfig = getQuestConfig(quest.questId);
+        
+        // Complete the quest
+        this.scene.questManager.completeQuest(quest.questId);
+        
+        // Show completion dialogue
+        const dialogueData = getNPCDialogue(npc.dialogueId);
+        const completionMessage = questConfig.onCompleteDialogue || "Quest complete! Here's your reward.";
+        
+        this.currentDialogueLines = [completionMessage];
+        this.currentNPCName = dialogueData.name;
+        this.currentDialogueIndex = 0;
+        
+        this.openDialogue();
+        this.displayCurrentDialogue();
+    }
+    
+    /**
+     * Start offering a quest to the player
+     */
+    startQuestOffer(npc, dialogueData, questId) {
+        const questOffer = dialogueData.questOffers.find(qo => qo.questId === questId);
+        const questConfig = getQuestConfig(questId);
+        
+        if (!questOffer || !questConfig) {
+            this.openDialogue();
+            this.displayCurrentDialogue();
+            return;
+        }
+        
+        // Set up quest mode
+        this.questMode = 'quest';
+        this.currentQuestId = questId;
+        
+        // Show quest offer dialogue
+        this.currentDialogueLines = [questOffer.dialogue];
+        this.currentNPCName = dialogueData.name;
+        this.currentDialogueIndex = 0;
+        
+        this.openDialogue();
+        this.questButton.setVisible(true);
+        this.displayCurrentDialogue();
     }
     
     openDialogue() {
@@ -220,6 +340,12 @@ export default class InteractionManager {
         this.dialogueContainer.setVisible(false);
         this.currentDialogueIndex = 0;
         this.currentDialogueLines = [];
+        this.currentNPC = null;
+        
+        // Reset quest mode
+        this.questMode = 'dialogue';
+        this.currentQuestId = null;
+        this.questButton.setVisible(false);
         
         // Resume game physics
         // this.scene.physics.resume();
@@ -234,6 +360,33 @@ export default class InteractionManager {
     }
     
     advanceDialogue() {
+        // Check if in quest mode
+        if (this.questMode === 'quest' && this.currentQuestId) {
+            // Accept the quest
+            if (this.scene.questManager.acceptQuest(this.currentQuestId)) {
+                const dialogueData = getNPCDialogue(this.currentNPC.dialogueId);
+                const questOffer = dialogueData.questOffers.find(qo => qo.questId === this.currentQuestId);
+                
+                // Switch to accept dialogue
+                this.questMode = 'dialogue';
+                this.questButton.setVisible(false);
+                
+                if (questOffer && questOffer.acceptDialogue) {
+                    this.currentDialogueLines = [questOffer.acceptDialogue];
+                    this.currentDialogueIndex = 0;
+                    this.displayCurrentDialogue();
+                } else {
+                    this.closeDialogue();
+                }
+            }
+            
+            // Play accept sound
+            if (this.audioManager) {
+                this.audioManager.playSound('menu-select');
+            }
+            return;
+        }
+        
         this.currentDialogueIndex++;
         
         if (this.currentDialogueIndex >= this.currentDialogueLines.length) {
@@ -256,8 +409,10 @@ export default class InteractionManager {
             this.dialogueText.setText(line);
             this.npcNameText.setText(this.currentNPCName);
             
-            // Update continue prompt if on last line
-            if (this.currentDialogueIndex === this.currentDialogueLines.length - 1) {
+            // Update prompts based on quest mode
+            if (this.questMode === 'quest' && this.currentQuestId) {
+                this.continuePrompt.setText('[E] Accept Quest  [ESC] Close');
+            } else if (this.currentDialogueIndex === this.currentDialogueLines.length - 1) {
                 this.continuePrompt.setText('[E] Close  [ESC] Close');
             } else {
                 this.continuePrompt.setText('[E] Continue  [ESC] Close');

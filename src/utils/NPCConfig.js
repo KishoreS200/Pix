@@ -15,7 +15,8 @@ export const NPCConfig = {
             x: 800,
             y: 600,
             color: 0x8b4513, // Brown robes
-            scale: 1.2
+            scale: 1.2,
+            questsOffered: ['scout-mines', 'defeat-final-boss']
         },
         {
             id: 'merchant',
@@ -25,7 +26,8 @@ export const NPCConfig = {
             x: 600,
             y: 400,
             color: 0xdaa520, // Goldenrod
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['defeat-second-boss']
         },
         {
             id: 'healer',
@@ -35,7 +37,8 @@ export const NPCConfig = {
             x: 1000,
             y: 400,
             color: 0x90ee90, // Light green
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['gather-herbs']
         },
         {
             id: 'guard',
@@ -45,7 +48,8 @@ export const NPCConfig = {
             x: 400,
             y: 600,
             color: 0x4682b4, // Steel blue (armor)
-            scale: 1.1
+            scale: 1.1,
+            questsOffered: ['hunt-forest-creatures', 'defeat-first-boss']
         },
         {
             id: 'villager1',
@@ -55,7 +59,8 @@ export const NPCConfig = {
             x: 500,
             y: 800,
             color: 0xdcdcdc, // Light grey
-            scale: 0.9
+            scale: 0.9,
+            questsOffered: []
         },
         {
             id: 'villager2',
@@ -65,7 +70,8 @@ export const NPCConfig = {
             x: 1100,
             y: 800,
             color: 0xf5deb3, // Wheat
-            scale: 0.9
+            scale: 0.9,
+            questsOffered: []
         },
         {
             id: 'villager3',
@@ -75,7 +81,8 @@ export const NPCConfig = {
             x: 900,
             y: 800,
             color: 0xffb6c1, // Light pink
-            scale: 0.7
+            scale: 0.7,
+            questsOffered: []
         }
     ],
     
@@ -88,7 +95,8 @@ export const NPCConfig = {
             x: 1200,
             y: 900,
             color: 0x9370db, // Medium purple (mystic)
-            scale: 1.1
+            scale: 1.1,
+            questsOffered: ['clear-forest-insects']
         },
         {
             id: 'hermit',
@@ -98,7 +106,8 @@ export const NPCConfig = {
             x: 600,
             y: 1200,
             color: 0x556b2f, // Dark olive green
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['hunt-wolves']
         }
     ],
     
@@ -111,7 +120,8 @@ export const NPCConfig = {
             x: 800,
             y: 400,
             color: 0xff8c00, // Dark orange (safety vest)
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['destroy-turrets']
         },
         {
             id: 'crystalMerchant',
@@ -121,7 +131,8 @@ export const NPCConfig = {
             x: 1200,
             y: 600,
             color: 0x00ced1, // Dark turquoise
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['clear-drones']
         }
     ],
     
@@ -134,7 +145,8 @@ export const NPCConfig = {
             x: 400,
             y: 1200,
             color: 0x696969, // Dim grey (tattered clothes)
-            scale: 0.95
+            scale: 0.95,
+            questsOffered: ['defeat-third-boss']
         },
         {
             id: 'trader',
@@ -144,7 +156,8 @@ export const NPCConfig = {
             x: 800,
             y: 1400,
             color: 0xcd853f, // Peru brown
-            scale: 1.0
+            scale: 1.0,
+            questsOffered: ['destroy-sentinels']
         },
         {
             id: 'cityGuard',
@@ -154,7 +167,8 @@ export const NPCConfig = {
             x: 1200,
             y: 1600,
             color: 0x2f4f4f, // Dark slate grey (damaged armor)
-            scale: 1.1
+            scale: 1.1,
+            questsOffered: ['eliminate-guards']
         }
     ],
     
