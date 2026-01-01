@@ -10,6 +10,7 @@ import ProgressionManager from '../systems/ProgressionManager';
 import ParticleManager from '../systems/ParticleManager';
 import EffectsManager from '../systems/EffectsManager';
 import AudioManager from '../systems/AudioManager';
+import CombatIntensityManager from '../systems/CombatIntensityManager';
 import SettingsMenu from '../systems/SettingsMenu';
 import FloatingText from '../utils/FloatingText';
 import { LootConfig } from '../utils/LootConfig';
@@ -32,6 +33,7 @@ export default class MainGame extends Phaser.Scene {
         this.particleManager = null;
         this.effectsManager = null;
         this.audioManager = null;
+        this.combatIntensityManager = null;
         this.settingsMenu = null;
 
         this.currentRegion = Regions.SILENT_VILLAGE;
@@ -98,6 +100,9 @@ export default class MainGame extends Phaser.Scene {
         // Initialize enemy spawner
         this.enemySpawner = new EnemySpawner(this);
         this.enemySpawner.spawnWave(Regions.SILENT_VILLAGE);
+
+        // Initialize combat intensity manager for dynamic music (after audioManager exists)
+        this.combatIntensityManager = new CombatIntensityManager(this, this.audioManager);
 
         this.regionText = this.add.text(10, 10, '', {
             fontSize: '16px',
@@ -199,6 +204,85 @@ export default class MainGame extends Phaser.Scene {
             .setDepth(11);
         
         this.updateXPBar();
+
+        // Music intensity indicator - top center
+        this.createMusicIntensityIndicator();
+    }
+
+    createMusicIntensityIndicator() {
+        const { width } = this.cameras.main;
+        const x = width / 2;
+        const y = 10;
+        
+        // Container for the intensity indicator
+        this.musicIntensityContainer = this.add.container(x, y).setScrollFactor(0).setDepth(100);
+        
+        // Background circle
+        const bgCircle = this.add.graphics();
+        bgCircle.fillStyle(0x006666, 0.8);
+        bgCircle.fillCircle(0, 0, 15);
+        bgCircle.lineStyle(2, 0x00ffff, 0.6);
+        bgCircle.strokeCircle(0, 0, 15);
+        
+        // Intensity bars (4 vertical bars)
+        this.intensityBars = [];
+        for (let i = 0; i < 4; i++) {
+            const bar = this.add.graphics();
+            const barHeight = 2 + (i * 3);
+            const barY = -8 + (i * 5);
+            bar.fillStyle(0x00ffff, 0.3);
+            bar.fillRect(-10 + (i * 7), barY, 4, barHeight);
+            this.intensityBars.push(bar);
+            this.musicIntensityContainer.add(bar);
+        }
+        
+        // Label
+        this.musicIntensityLabel = this.add.text(0, 25, 'MUSIC', {
+            fontSize: '10px',
+            fill: '#00ffff'
+        }).setOrigin(0.5, 0);
+        
+        this.musicIntensityContainer.add([bgCircle, this.musicIntensityLabel]);
+        
+        // Set initial state
+        this.updateMusicIntensityIndicator(0);
+    }
+
+    updateMusicIntensityIndicator(intensity) {
+        if (!this.musicIntensityContainer || !this.intensityBars) return;
+        
+        const level = Math.floor(intensity / 25); // 0-4 levels
+        
+        // Update bars
+        this.intensityBars.forEach((bar, index) => {
+            bar.clear();
+            if (index <= level) {
+                // Active bar with color based on intensity level
+                if (level < 2) {
+                    bar.fillStyle(0x00aaff, 0.8); // Blue for low intensity
+                } else if (level < 3) {
+                    bar.fillStyle(0x00ffff, 0.8); // Cyan for medium intensity
+                } else {
+                    bar.fillStyle(0xff6600, 0.8); // Orange for high intensity
+                }
+                bar.fillRect(-10 + (index * 7), -8 + (index * 5), 4, 2 + (index * 3));
+                
+                // Add glow effect for high intensity
+                if (level >= 3) {
+                    bar.lineStyle(1, 0xffaa00, 0.5);
+                    bar.strokeRect(-10 + (index * 7), -8 + (index * 5), 4, 2 + (index * 3));
+                }
+            }
+        });
+        
+        // Update container tint based on intensity
+        if (level < 2) {
+            this.musicIntensityContainer.setTint(0x0066aa); // Blue tint
+        } else if (level < 3) {
+            this.musicIntensityContainer.setTint(0x00aacc); // Cyan tint
+        } else {
+            this.musicIntensityContainer.setTint(0xcc6600); // Orange tint
+        }
     }
 
     setupEventListeners() {
@@ -261,7 +345,7 @@ export default class MainGame extends Phaser.Scene {
             this.powerUpText.setVisible(false);
         });
 
-        // Player damage (for updating health display)
+        // Player damage (for updating health display and combat intensity)
         this.events.on('player-damage', (amount) => {
             this.updateHealthText();
             
@@ -275,6 +359,11 @@ export default class MainGame extends Phaser.Scene {
                     yoyo: true,
                     ease: 'Back.easeOut'
                 });
+            }
+            
+            // Notify combat intensity manager
+            if (this.combatIntensityManager) {
+                this.combatIntensityManager.onPlayerHit();
             }
         });
         
@@ -291,6 +380,11 @@ export default class MainGame extends Phaser.Scene {
                 this.updateLevelText();
                 this.updateXPText();
                 this.updateXPBar();
+                
+                // Notify combat intensity manager
+                if (this.combatIntensityManager) {
+                    this.combatIntensityManager.onEnemyDefeated(data.enemy);
+                }
             }
         });
         
@@ -570,6 +664,22 @@ export default class MainGame extends Phaser.Scene {
         }
 
         this.cameraManager.update(time, delta);
+
+        // Update audio intensity system
+        if (this.audioManager) {
+            this.audioManager.update(time, delta);
+        }
+        
+        // Update combat intensity manager
+        if (this.combatIntensityManager) {
+            this.combatIntensityManager.update(time, delta);
+        }
+        
+        // Update music intensity indicator
+        if (this.musicIntensityContainer && this.audioManager) {
+            const currentIntensity = this.audioManager.getCombatIntensity();
+            this.updateMusicIntensityIndicator(currentIntensity);
+        }
     }
 
     shutdown() {
@@ -591,6 +701,10 @@ export default class MainGame extends Phaser.Scene {
         
         if (this.effectsManager) {
             this.effectsManager.destroy();
+        }
+        
+        if (this.combatIntensityManager) {
+            this.combatIntensityManager.destroy();
         }
         
         if (this.settingsMenu) {

@@ -18,7 +18,7 @@ export default class SettingsMenu {
         // UI styling constants
         this.styles = {
             width: 500,
-            height: 460,
+            height: 530, // Increased height to accommodate dynamic music controls
             backgroundColor: 0x0a0a0a,
             borderColor: 0x00ffff,
             borderWidth: 3,
@@ -234,14 +234,18 @@ export default class SettingsMenu {
         this.createSlider('SFX', 'sfx', startY + spacing);
         this.createSlider('Music', 'music', startY + spacing * 2);
         
+        // Dynamic music settings
+        this.createDynamicMusicToggle(startY + spacing * 3);
+        this.createIntensitySensitivitySlider(startY + spacing * 4);
+        
         // Mute toggle
-        this.createMuteToggle(startY + spacing * 3);
+        this.createMuteToggle(startY + spacing * 5);
         
         // Reset to defaults button
-        this.createResetButton(startY + spacing * 4);
+        this.createResetButton(startY + spacing * 6);
         
         // Return to menu button (only if scene has a menu scene available)
-        this.createReturnToMenuButton(startY + spacing * 4 + 50);
+        this.createReturnToMenuButton(startY + spacing * 6 + 50);
         
         // Close instruction
         const closeText = this.scene.add.text(0, this.styles.height / 2 - 30, 'Press ESC to close', {
@@ -472,6 +476,212 @@ export default class SettingsMenu {
                 }
             }
         }, 100);
+    }
+    
+    createDynamicMusicToggle(y) {
+        const toggleWidth = 60;
+        const toggleHeight = 30;
+        
+        // Label
+        const labelText = this.scene.add.text(-this.styles.width / 2 + 30, y, 'Dynamic Music:', {
+            fontSize: '18px',
+            fill: this.styles.textColor,
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+        
+        // Toggle background
+        const toggleBg = this.scene.add.graphics()
+            .setInteractive(
+                new Phaser.Geom.Rectangle(this.styles.width / 2 - 90, y - toggleHeight / 2, toggleWidth, toggleHeight),
+                Phaser.Geom.Rectangle.Contains
+            );
+        
+        // Toggle handle
+        const toggleHandle = this.scene.add.graphics();
+        
+        // Status text
+        const dynamicMusicStatusText = this.scene.add.text(this.styles.width / 2 - 100, y, 'ON', {
+            fontSize: '16px',
+            fill: '#66ff66',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0.5);
+        
+        const updateToggle = () => {
+            const isEnabled = this.audioManager.dynamicMusicEnabled;
+            
+            toggleBg.clear();
+            
+            // Background color based on state
+            if (isEnabled) {
+                toggleBg.fillStyle(0x006600, 0.8);
+            } else {
+                toggleBg.fillStyle(0x666666, 0.8);
+            }
+            
+            toggleBg.fillRoundedRect(this.styles.width / 2 - 90, y - toggleHeight / 2, toggleWidth, toggleHeight, 15);
+            toggleBg.lineStyle(2, 0xffffff, 0.5);
+            toggleBg.strokeRoundedRect(this.styles.width / 2 - 90, y - toggleHeight / 2, toggleWidth, toggleHeight, 15);
+            
+            // Handle position
+            const handleX = isEnabled 
+                ? this.styles.width / 2 - 90 + toggleWidth - 15
+                : this.styles.width / 2 - 90 + 15;
+            
+            toggleHandle.clear();
+            toggleHandle.fillStyle(0xffffff, 1);
+            toggleHandle.fillCircle(handleX, y, 10);
+            
+            // Status text
+            dynamicMusicStatusText.setText(isEnabled ? 'ON' : 'OFF');
+            dynamicMusicStatusText.setStyle({
+                fill: isEnabled ? '#66ff66' : '#ff6666'
+            });
+        };
+        
+        toggleBg.on('pointerdown', () => {
+            this.audioManager.setDynamicMusicEnabled(!this.audioManager.dynamicMusicEnabled);
+            updateToggle();
+            
+            // Play feedback sound
+            if (!this.audioManager.muted) {
+                this.audioManager.playSound('menu-confirm', 0.6);
+            }
+        });
+        
+        this.container.add([labelText, toggleBg, toggleHandle, dynamicMusicStatusText]);
+        updateToggle();
+    }
+    
+    createIntensitySensitivitySlider(y) {
+        const sliderWidth = 300;
+        const sliderHeight = 8;
+        const handleSize = 20;
+        
+        // Label
+        const labelText = this.scene.add.text(-this.styles.width / 2 + 30, y - 20, 'Intensity Sensitivity:', {
+            fontSize: '18px',
+            fill: this.styles.textColor,
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5);
+        
+        // Percentage text
+        const percentageText = this.scene.add.text(this.styles.width / 2 - 50, y - 20, '75%', {
+            fontSize: '18px',
+            fill: this.styles.textColor,
+            fontFamily: 'Arial'
+        }).setOrigin(1, 0.5);
+        
+        // Slider background
+        const sliderBg = this.scene.add.graphics();
+        
+        // Slider fill
+        const sliderFill = this.scene.add.graphics();
+        
+        // Handle
+        const sliderHandle = this.scene.add.graphics()
+            .setInteractive(
+                new Phaser.Geom.Rectangle(-sliderWidth / 2, y - handleSize / 2, sliderWidth, handleSize),
+                Phaser.Geom.Rectangle.Contains
+            );
+        
+        const updateSlider = (value) => {
+            // Update audio manager
+            this.audioManager.setIntensitySensitivity(value);
+            
+            // Calculate handle position
+            const fillWidth = (value / 100) * sliderWidth;
+            const handleX = -sliderWidth / 2 + fillWidth;
+            
+            // Update visuals
+            this.updateIntensitySliderVisuals(sliderBg, sliderFill, sliderHandle, value, sliderWidth, sliderHeight, handleSize, y);
+            percentageText.setText(value + '%');
+        };
+        
+        // Initial update
+        updateSlider(this.audioManager.intensitySensitivity);
+        
+        // Handle interaction
+        sliderHandle.on('pointerdown', (pointer) => {
+            this.updateIntensityFromPointer(pointer, sliderBg, sliderFill, sliderHandle, percentageText, sliderWidth, sliderHeight, handleSize, y);
+        });
+        
+        sliderBg.on('pointerdown', (pointer) => {
+            this.updateIntensityFromPointer(pointer, sliderBg, sliderFill, sliderHandle, percentageText, sliderWidth, sliderHeight, handleSize, y);
+        });
+        
+        this.container.add([labelText, percentageText, sliderBg, sliderFill, sliderHandle]);
+    }
+    
+    updateIntensityFromPointer(pointer, sliderBg, sliderFill, sliderHandle, percentageText, sliderWidth, sliderHeight, handleSize, y) {
+        const localX = pointer.x - this.container.x;
+        const sliderStart = -sliderWidth / 2;
+        const sliderEnd = sliderWidth / 2;
+        
+        // Clamp to slider bounds
+        const clampedX = Math.max(sliderStart, Math.min(sliderEnd, localX));
+        
+        // Calculate sensitivity (0-100)
+        const sensitivity = Math.round(((clampedX - sliderStart) / sliderWidth) * 100);
+        
+        // Update audio manager
+        this.audioManager.setIntensitySensitivity(sensitivity);
+        
+        // Update visuals
+        this.updateIntensitySliderVisuals(sliderBg, sliderFill, sliderHandle, sensitivity, sliderWidth, sliderHeight, handleSize, y);
+        percentageText.setText(sensitivity + '%');
+        
+        // Play preview sound
+        if (!this.audioManager.muted) {
+            this.audioManager.playSound('menu-select', 0.3);
+        }
+    }
+    
+    updateIntensitySliderVisuals(sliderBg, sliderFill, sliderHandle, sensitivity, sliderWidth, sliderHeight, handleSize, y) {
+        const fillWidth = (sensitivity / 100) * sliderWidth;
+        const handleX = -sliderWidth / 2 + fillWidth;
+        
+        // Background
+        sliderBg.clear();
+        sliderBg.fillStyle(0x333333, 1);
+        sliderBg.fillRect(-sliderWidth / 2, y - sliderHeight / 2, sliderWidth, sliderHeight);
+        sliderBg.lineStyle(2, 0x666666, 0.8);
+        sliderBg.strokeRect(-sliderWidth / 2, y - sliderHeight / 2, sliderWidth, sliderHeight);
+        
+        // Fill
+        sliderFill.clear();
+        sliderFill.fillStyle(0x00ffff, 0.8);
+        sliderFill.fillRect(-sliderWidth / 2, y - sliderHeight / 2, fillWidth, sliderHeight);
+        
+        // Handle glow effect
+        sliderHandle.clear();
+        
+        // Outer glow
+        sliderHandle.fillStyle(0x00ffff, 0.3);
+        sliderHandle.fillRect(
+            handleX - handleSize / 2 - 4,
+            y - handleSize / 2 - 4,
+            handleSize + 8,
+            handleSize + 8
+        );
+        
+        // Handle body
+        sliderHandle.fillStyle(0x00ffff, 1);
+        sliderHandle.fillRect(
+            handleX - handleSize / 2,
+            y - handleSize / 2,
+            handleSize,
+            handleSize
+        );
+        
+        // Handle inner
+        sliderHandle.fillStyle(0x000000, 1);
+        sliderHandle.fillRect(
+            handleX - handleSize / 4,
+            y - handleSize / 4,
+            handleSize / 2,
+            handleSize / 2
+        );
     }
     
     createMuteToggle(y) {
