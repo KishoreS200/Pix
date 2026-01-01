@@ -1,6 +1,9 @@
 import { Regions } from './RegionConfig';
 
 export const MusicKeys = Object.freeze({
+    // Menu Theme
+    MENU: 'music-menu',
+
     // Region Themes
     SILENT_VILLAGE: 'music-silent-village',
     FORGOTTEN_FOREST: 'music-forgotten-forest',
@@ -25,6 +28,14 @@ export const RegionMusicMap = Object.freeze({
 // Procedural music definitions. These are used to generate loopable AudioBuffers.
 // The generator in AudioManager uses these parameters to build a themed loop.
 export const MusicConfig = {
+    [MusicKeys.MENU]: {
+        theme: 'glitch-ambient',
+        baseFreq: 65,
+        shimmerFreqs: [196, 247, 294, 392],
+        noiseAmount: 0.1,
+        tempo: 60,
+        lengthSeconds: 12
+    },
     [MusicKeys.SILENT_VILLAGE]: {
         theme: 'glitch-ambient',
         baseFreq: 55,
