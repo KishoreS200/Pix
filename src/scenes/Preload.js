@@ -4,6 +4,7 @@ import forgottenForest from '../assets/tilemaps/forgotten-forest.json';
 import crystalMines from '../assets/tilemaps/crystal-mines.json';
 import brokenCity from '../assets/tilemaps/broken-city.json';
 import theCore from '../assets/tilemaps/the-core.json';
+import { createAllCharacterSpriteSheets } from '../utils/CharacterDesignSystem';
 
 export default class Preload extends Phaser.Scene {
     constructor() {
@@ -11,96 +12,9 @@ export default class Preload extends Phaser.Scene {
     }
 
     preload() {
-        this.createPlaceholderSpritesheet();
-        this.createEnemySpritesheets();
+        createAllCharacterSpriteSheets(this);
         this.createTilesetSpritesheet();
         this.loadTilemaps();
-    }
-
-    createPlaceholderSpritesheet() {
-        const width = 32;
-        const height = 32;
-        const frames = 40;
-        const canvas = document.createElement('canvas');
-        canvas.width = width * frames;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-
-        for (let i = 0; i < frames; i++) {
-            // Draw dark cloak
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(i * width, 0, width, height);
-
-            // Draw cyan core
-            ctx.fillStyle = '#00ffff';
-            ctx.fillRect(i * width + 12, 12, 8, 8);
-
-            // Draw eyes
-            ctx.fillStyle = '#ffffff'; // Normal eye
-            ctx.fillRect(i * width + 8, 6, 4, 4);
-            ctx.fillStyle = '#00ffff'; // Glowing eye
-            ctx.fillRect(i * width + 20, 6, 4, 4);
-            
-            // Add a simple border to distinguish frames
-            ctx.strokeStyle = '#333333';
-            ctx.strokeRect(i * width, 0, width, height);
-
-            // Add simple "animation" variation based on frame index
-            ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
-            if (i % 2 === 0) {
-                ctx.fillRect(i * width + 10, 10, 12, 12);
-            }
-        }
-
-        this.textures.addSpriteSheet('player', canvas, { frameWidth: 32, frameHeight: 32 });
-    }
-
-    createEnemySpritesheets() {
-        const factions = [
-            { name: 'glitch_fauna', color: '#ff00ff', secondary: '#4b0082' },
-            { name: 'corrupted_human', color: '#808080', secondary: '#404040' },
-            { name: 'sentinel_machine', color: '#00ced1', secondary: '#2f4f4f' }
-        ];
-
-        factions.forEach(faction => {
-            const width = 32;
-            const height = 32;
-            const frames = 40;
-            const canvas = document.createElement('canvas');
-            canvas.width = width * frames;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-
-            for (let i = 0; i < frames; i++) {
-                ctx.fillStyle = faction.secondary;
-                ctx.fillRect(i * width, 0, width, height);
-
-                ctx.fillStyle = faction.color;
-                if (faction.name === 'glitch_fauna') {
-                    // Erratic pixels
-                    for (let p = 0; p < 10; p++) {
-                        ctx.fillRect(i * width + Math.random() * 24, Math.random() * 24, 4, 4);
-                    }
-                } else if (faction.name === 'corrupted_human') {
-                    // Faded outline
-                    ctx.globalAlpha = 0.6;
-                    ctx.fillRect(i * width + 8, 4, 16, 24);
-                    ctx.globalAlpha = 1.0;
-                } else if (faction.name === 'sentinel_machine') {
-                    // Mechanical/Rigid
-                    ctx.fillRect(i * width + 6, 6, 20, 20);
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(i * width + 12, 12, 8, 8); // glowing sensor
-                }
-
-                // Add simple animation variation
-                if (i % 2 === 0) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctx.fillRect(i * width + 4, 4, 4, 4);
-                }
-            }
-            this.textures.addSpriteSheet(faction.name, canvas, { frameWidth: 32, frameHeight: 32 });
-        });
     }
 
     createTilesetSpritesheet() {

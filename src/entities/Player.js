@@ -222,7 +222,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.lastAttackTime = currentTime;
         this.setVelocity(0, 0);
         
-        this.play('attack', true);
+        const attackAnimKey = `attack-${this.facingDirection}`;
+        this.play(attackAnimKey, true);
 
         if (this.scene.combatManager) {
             const range = 80;
@@ -262,7 +263,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.once('animationcomplete', (anim) => {
-            if (anim.key === 'attack') {
+            if (anim.key === attackAnimKey) {
                 this.isAttacking = false;
             }
         });
@@ -280,61 +281,106 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (anims.exists('idle-down')) return;
 
+        // Sprite sheet layout (41 frames):
+        // Idle (2 frames x 4 directions):
+        //   down: 0-1, up: 2-3, left: 4-5, right: 6-7
+        // Walk (4 frames x 4 directions):
+        //   down: 8-11, up: 12-15, left: 16-19, right: 20-23
+        // Attack (3 frames x 4 directions):
+        //   down: 24-26, up: 27-29, left: 30-32, right: 33-35
+        // Hit: 36
+        // Death: 37-40
+
         // Idle
         anims.create({
             key: 'idle-down',
-            frames: anims.generateFrameNumbers('player', { start: 0, end: 3 }),
-            frameRate: 8,
+            frames: anims.generateFrameNumbers('player', { start: 0, end: 1 }),
+            frameRate: 4,
             repeat: -1
         });
-        // We can add other idle directions if needed, but for now let's use down
+        anims.create({
+            key: 'idle-up',
+            frames: anims.generateFrameNumbers('player', { start: 2, end: 3 }),
+            frameRate: 4,
+            repeat: -1
+        });
+        anims.create({
+            key: 'idle-left',
+            frames: anims.generateFrameNumbers('player', { start: 4, end: 5 }),
+            frameRate: 4,
+            repeat: -1
+        });
+        anims.create({
+            key: 'idle-right',
+            frames: anims.generateFrameNumbers('player', { start: 6, end: 7 }),
+            frameRate: 4,
+            repeat: -1
+        });
 
         // Walk
         anims.create({
             key: 'walk-down',
-            frames: anims.generateFrameNumbers('player', { start: 4, end: 9 }),
+            frames: anims.generateFrameNumbers('player', { start: 8, end: 11 }),
             frameRate: 10,
             repeat: -1
         });
         anims.create({
             key: 'walk-up',
-            frames: anims.generateFrameNumbers('player', { start: 10, end: 15 }),
+            frames: anims.generateFrameNumbers('player', { start: 12, end: 15 }),
             frameRate: 10,
             repeat: -1
         });
         anims.create({
             key: 'walk-left',
-            frames: anims.generateFrameNumbers('player', { start: 16, end: 21 }),
+            frames: anims.generateFrameNumbers('player', { start: 16, end: 19 }),
             frameRate: 10,
             repeat: -1
         });
         anims.create({
             key: 'walk-right',
-            frames: anims.generateFrameNumbers('player', { start: 22, end: 27 }),
+            frames: anims.generateFrameNumbers('player', { start: 20, end: 23 }),
             frameRate: 10,
             repeat: -1
         });
 
-        // Attack
+        // Attack (directional)
         anims.create({
-            key: 'attack',
-            frames: anims.generateFrameNumbers('player', { start: 28, end: 31 }),
-            frameRate: 12,
+            key: 'attack-down',
+            frames: anims.generateFrameNumbers('player', { start: 24, end: 26 }),
+            frameRate: 14,
+            repeat: 0
+        });
+        anims.create({
+            key: 'attack-up',
+            frames: anims.generateFrameNumbers('player', { start: 27, end: 29 }),
+            frameRate: 14,
+            repeat: 0
+        });
+        anims.create({
+            key: 'attack-left',
+            frames: anims.generateFrameNumbers('player', { start: 30, end: 32 }),
+            frameRate: 14,
+            repeat: 0
+        });
+        anims.create({
+            key: 'attack-right',
+            frames: anims.generateFrameNumbers('player', { start: 33, end: 35 }),
+            frameRate: 14,
             repeat: 0
         });
 
         // Hit
         anims.create({
             key: 'hit',
-            frames: anims.generateFrameNumbers('player', { start: 32, end: 33 }),
-            frameRate: 8,
+            frames: anims.generateFrameNumbers('player', { start: 36, end: 36 }),
+            frameRate: 10,
             repeat: 0
         });
 
         // Death
         anims.create({
             key: 'death',
-            frames: anims.generateFrameNumbers('player', { start: 34, end: 39 }),
+            frames: anims.generateFrameNumbers('player', { start: 37, end: 40 }),
             frameRate: 8,
             repeat: 0
         });
@@ -343,7 +389,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     update(inputVector) {
         // Don't interrupt certain animations if they are still playing
         const currentAnim = this.anims.currentAnim;
-        if (currentAnim && (currentAnim.key === 'attack' || currentAnim.key === 'death') && this.anims.isPlaying) {
+        if (
+            currentAnim &&
+            (currentAnim.key === 'death' || currentAnim.key.startsWith('attack-')) &&
+            this.anims.isPlaying
+        ) {
             this.setVelocity(0, 0);
             return;
         }
@@ -373,8 +423,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             }
             this.play(`walk-${this.facingDirection}`, true);
         } else {
-            // If stopped, play idle
-            this.play('idle-down', true);
+            // If stopped, play directional idle
+            this.play(`idle-${this.facingDirection}`, true);
         }
     }
 }

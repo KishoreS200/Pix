@@ -9,9 +9,30 @@ export default class ParticleManager {
         this._activeObjects = [];
 
         this.colors = {
+            // Legacy faction keys (kept for compatibility)
             glitch_fauna: 0xff00ff,
             corrupted_human: 0x808080,
             sentinel_machine: 0x00ffff,
+
+            // New character design system factions
+            faction_glitch: 0x00ffff,
+            faction_beast: 0x00aa00,
+            faction_crystal: 0x40e0d0,
+            faction_industrial: 0x808080,
+            faction_void: 0x8b00ff,
+            faction_corruption: 0xff0000,
+
+            // New enemy texture keys (so effects can opt into per-enemy color)
+            enemy_glitch_sprite: 0x00ffff,
+            enemy_corrupted_rat: 0xff0000,
+            enemy_thorned_beast: 0x00aa00,
+            enemy_forest_wraith: 0x8a2be2,
+            enemy_crystal_golem: 0x40e0d0,
+            enemy_mining_glitch: 0xff8c00,
+            enemy_corrupted_sentinel: 0xff00ff,
+            enemy_urban_ghoul: 0x6b7a2a,
+            enemy_void_entity: 0x8b00ff,
+            enemy_corrupted_guardian: 0xff0000,
 
             player_hit: 0xff0000,
             damage: 0xffffff,
