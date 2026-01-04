@@ -36,37 +36,39 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         if (anims.exists(`${texture}-idle`)) return;
 
+        // Sprite sheet layout (14 frames):
+        // idle: 0-1, walk: 2-5, attack: 6-8, hit: 9, death: 10-13
         anims.create({
             key: `${texture}-idle`,
-            frames: anims.generateFrameNumbers(texture, { start: 0, end: 3 }),
-            frameRate: 8,
+            frames: anims.generateFrameNumbers(texture, { start: 0, end: 1 }),
+            frameRate: 6,
             repeat: -1
         });
 
         anims.create({
             key: `${texture}-walk`,
-            frames: anims.generateFrameNumbers(texture, { start: 4, end: 9 }),
+            frames: anims.generateFrameNumbers(texture, { start: 2, end: 5 }),
             frameRate: 10,
             repeat: -1
         });
 
         anims.create({
             key: `${texture}-attack`,
-            frames: anims.generateFrameNumbers(texture, { start: 28, end: 31 }),
+            frames: anims.generateFrameNumbers(texture, { start: 6, end: 8 }),
             frameRate: 12,
             repeat: 0
         });
 
         anims.create({
             key: `${texture}-hit`,
-            frames: anims.generateFrameNumbers(texture, { start: 32, end: 33 }),
-            frameRate: 8,
+            frames: anims.generateFrameNumbers(texture, { start: 9, end: 9 }),
+            frameRate: 10,
             repeat: 0
         });
 
         anims.create({
             key: `${texture}-death`,
-            frames: anims.generateFrameNumbers(texture, { start: 34, end: 39 }),
+            frames: anims.generateFrameNumbers(texture, { start: 10, end: 13 }),
             frameRate: 8,
             repeat: 0
         });

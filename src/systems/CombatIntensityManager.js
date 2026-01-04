@@ -202,7 +202,7 @@ export default class CombatIntensityManager {
         
         // Check if enemies are actively chasing/attacking
         for (const enemy of this.nearbyEnemies) {
-            if (enemy.state === 'attacking' || enemy.state === 'chasing') {
+            if (enemy.state === 'attack' || enemy.state === 'chase' || enemy.state === 'attacking' || enemy.state === 'chasing') {
                 return true;
             }
         }

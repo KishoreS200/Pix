@@ -38,41 +38,102 @@ export default class NPC extends Phaser.GameObjects.Container {
     }
     
     createSprite() {
-        // Create a simple humanoid sprite using graphics
-        const graphics = this.scene.add.graphics();
-        
-        // Body (rectangle)
-        graphics.fillStyle(this.npcColor, 1);
-        graphics.fillRect(-8, -8, 16, 24);
-        
-        // Head (circle)
-        const headColor = this.lightenColor(this.npcColor, 0.3);
-        graphics.fillStyle(headColor, 1);
-        graphics.fillCircle(0, -18, 8);
-        
-        // Eyes (to show it's alive/friendly)
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillCircle(-3, -18, 2);
-        graphics.fillCircle(3, -18, 2);
-        
-        // Simple outline for definition
-        graphics.lineStyle(1, 0x000000, 0.5);
-        graphics.strokeRect(-8, -8, 16, 24);
-        graphics.strokeCircle(0, -18, 8);
-        
-        // Generate texture from graphics
-        graphics.generateTexture(`npc_${this.npcId}`, 32, 48);
-        graphics.destroy();
-        
-        // Create sprite from generated texture
-        this.sprite = this.scene.add.sprite(0, 0, `npc_${this.npcId}`);
+        const textureKey = `npc_${this.npcId}`;
+
+        // Fallback (should be rare; textures are generated in Preload)
+        if (!this.scene.textures.exists(textureKey)) {
+            const graphics = this.scene.add.graphics();
+            graphics.fillStyle(this.npcColor, 1);
+            graphics.fillRect(-8, -8, 16, 24);
+            const headColor = this.lightenColor(this.npcColor, 0.3);
+            graphics.fillStyle(headColor, 1);
+            graphics.fillCircle(0, -18, 8);
+            graphics.fillStyle(0x000000, 1);
+            graphics.fillCircle(-3, -18, 2);
+            graphics.fillCircle(3, -18, 2);
+            graphics.lineStyle(1, 0x000000, 0.5);
+            graphics.strokeRect(-8, -8, 16, 24);
+            graphics.strokeCircle(0, -18, 8);
+            graphics.generateTexture(textureKey, 32, 48);
+            graphics.destroy();
+        }
+
+        this.setupAnimations(textureKey);
+
+        // Create sprite from generated spritesheet
+        this.sprite = this.scene.add.sprite(0, 0, textureKey);
         this.sprite.setScale(this.npcScale);
         this.add(this.sprite);
-        
+
+        this.sprite.play(`${textureKey}-idle-down`, true);
+
         // Add a subtle shadow
         const shadow = this.scene.add.ellipse(0, 20, 20, 8, 0x000000, 0.3);
         this.add(shadow);
         this.sendToBack(shadow);
+    }
+
+    setupAnimations(textureKey) {
+        const anims = this.scene.anims;
+
+        if (anims.exists(`${textureKey}-idle-down`)) return;
+
+        anims.create({
+            key: `${textureKey}-idle-down`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 0, end: 1 }),
+            frameRate: 3,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-idle-up`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 2, end: 3 }),
+            frameRate: 3,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-idle-left`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 4, end: 5 }),
+            frameRate: 3,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-idle-right`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 6, end: 7 }),
+            frameRate: 3,
+            repeat: -1
+        });
+
+        // Walk frames start at 8
+        anims.create({
+            key: `${textureKey}-walk-down`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 8, end: 11 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-walk-up`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 12, end: 15 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-walk-left`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 16, end: 19 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        anims.create({
+            key: `${textureKey}-walk-right`,
+            frames: anims.generateFrameNumbers(textureKey, { start: 20, end: 23 }),
+            frameRate: 8,
+            repeat: -1
+        });
     }
     
     createInteractionIndicator() {

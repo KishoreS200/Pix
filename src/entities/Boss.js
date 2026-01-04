@@ -98,18 +98,21 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         // Skip if animations already exist
         if (anims.exists(`${texture}-idle`)) return;
         
+        // Sprite sheet layout (16 frames):
+        // idle: 0-1, walk: 2-5, attack: 6-8, hit: 9, death: 10-13, special: 14-15
+
         // Idle animation
         anims.create({
             key: `${texture}-idle`,
-            frames: anims.generateFrameNumbers(texture, { start: 0, end: 3 }),
-            frameRate: 6,
+            frames: anims.generateFrameNumbers(texture, { start: 0, end: 1 }),
+            frameRate: 4,
             repeat: -1
         });
         
         // Walk/move animation
         anims.create({
             key: `${texture}-walk`,
-            frames: anims.generateFrameNumbers(texture, { start: 4, end: 7 }),
+            frames: anims.generateFrameNumbers(texture, { start: 2, end: 5 }),
             frameRate: 8,
             repeat: -1
         });
@@ -117,7 +120,7 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         // Attack animation
         anims.create({
             key: `${texture}-attack`,
-            frames: anims.generateFrameNumbers(texture, { start: 8, end: 11 }),
+            frames: anims.generateFrameNumbers(texture, { start: 6, end: 8 }),
             frameRate: 12,
             repeat: 0
         });
@@ -125,7 +128,7 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         // Hit/damage animation
         anims.create({
             key: `${texture}-hit`,
-            frames: anims.generateFrameNumbers(texture, { start: 12, end: 13 }),
+            frames: anims.generateFrameNumbers(texture, { start: 9, end: 9 }),
             frameRate: 10,
             repeat: 0
         });
@@ -133,7 +136,7 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         // Death animation
         anims.create({
             key: `${texture}-death`,
-            frames: anims.generateFrameNumbers(texture, { start: 14, end: 19 }),
+            frames: anims.generateFrameNumbers(texture, { start: 10, end: 13 }),
             frameRate: 8,
             repeat: 0
         });
@@ -141,7 +144,7 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         // Special animations for different attacks
         anims.create({
             key: `${texture}-special`,
-            frames: anims.generateFrameNumbers(texture, { start: 20, end: 23 }),
+            frames: anims.generateFrameNumbers(texture, { start: 14, end: 15 }),
             frameRate: 10,
             repeat: 0
         });
@@ -836,9 +839,14 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         const chargeDistance = 400;
         
         // Telegraph the charge
-        const telegraph = this.scene.add.arrow(this.x, this.y, Math.cos(angle) * 50, Math.sin(angle) * 50, 0xff0000, 0.5);
+        const telegraph = this.scene.add.container(this.x, this.y);
         telegraph.setDepth(29);
         
+        const shaft = this.scene.add.rectangle(0, 0, 50, 6, 0xff0000, 0.5).setOrigin(0, 0.5);
+        const head = this.scene.add.triangle(50, 0, 0, -10, 0, 10, 16, 0, 0xff0000, 0.5).setOrigin(0, 0.5);
+        telegraph.add([shaft, head]);
+        telegraph.rotation = angle;
+
         this.scene.tweens.add({
             targets: telegraph,
             scaleX: chargeDistance / 50,
@@ -882,7 +890,14 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
         if (!this.scene.enemySpawner) return;
         
         const summonCount = 2 + this.currentPhase;
-        const summonedTypes = ['glitch_fauna', 'corrupted_human'];
+
+        // Summon lower-tier enemies during the encounter.
+        // EnemySpawner expects a concrete enemy key.
+        const summonedTypes = [
+            'enemy_glitch_sprite',
+            'enemy_corrupted_rat',
+            'enemy_thorned_beast'
+        ];
         
         for (let i = 0; i < summonCount; i++) {
             const offsetX = Phaser.Math.Between(-100, 100);
@@ -932,26 +947,54 @@ export default class Boss extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// Helper function to create boss textures procedurally
+// Helper function to create boss sprite sheets procedurally (fallback)
 function createBossTexture(scene, key, width, height, tint) {
-    const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
-    
-    // Main body
-    graphics.fillStyle(tint, 1);
-    graphics.fillRect(0, 0, width, height);
-    
-    // Core/glow effect
-    const centerX = width / 2;
-    const centerY = height / 2;
-    graphics.fillStyle(0xffffff, 0.3);
-    graphics.fillCircle(centerX, centerY, Math.min(width, height) * 0.3);
-    
-    // Eyes/features
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(centerX - width * 0.2, centerY - height * 0.15, width * 0.15, height * 0.15);
-    graphics.fillRect(centerX + width * 0.05, centerY - height * 0.15, width * 0.15, height * 0.15);
-    
-    // Generate texture
-    graphics.generateTexture(key, width, height);
-    graphics.destroy();
+    const frames = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width = width * frames;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const tintHex = `#${tint.toString(16).padStart(6, '0')}`;
+
+    for (let i = 0; i < frames; i++) {
+        const ox = i * width;
+        ctx.clearRect(ox, 0, width, height);
+
+        // Base body
+        ctx.fillStyle = tintHex;
+        ctx.fillRect(ox + 2, 2, width - 4, height - 4);
+
+        // Outline
+        ctx.strokeStyle = '#0a0014';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ox + 2, 2, width - 4, height - 4);
+
+        // Core pulse
+        const cx = ox + Math.floor(width / 2);
+        const cy = Math.floor(height / 2);
+        const pulse = (i % 2 === 0) ? 1 : 0;
+
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.35)';
+        ctx.fillRect(cx - 6 - pulse, cy - 6 - pulse, 12 + pulse * 2, 12 + pulse * 2);
+
+        // Eyes
+        ctx.fillStyle = '#ff00ff';
+        ctx.fillRect(cx - 14, cy - 14, 8, 6);
+        ctx.fillRect(cx + 6, cy - 14, 8, 6);
+
+        // Attack/special markers
+        if (i >= 6 && i <= 8) {
+            ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
+            ctx.fillRect(ox, cy - 2, width, 4);
+        }
+        if (i >= 14) {
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.12)';
+            ctx.fillRect(ox, 0, width, height);
+        }
+    }
+
+    scene.textures.addSpriteSheet(key, canvas, { frameWidth: width, frameHeight: height });
 }
